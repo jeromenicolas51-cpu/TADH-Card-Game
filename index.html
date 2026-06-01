@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#05090f;--panel:#111c30;--border:#1e3a5f;--text:#c8ddf5;--text2:#7aaad4;--gold:#e8c46a;--red:#e85555;--green:#4caf7d;--blue:#4a90e2;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;overflow:hidden;height:100vh;}
+.screen{display:none;height:100vh;}.screen.active{display:flex;flex-direction:column;}
+#title-screen{background:radial-gradient(ellipse at center bottom,#0d2545,#020810);align-items:center;justify-content:center;gap:16px;text-align:center;}
+.twh{font-size:70px;animation:fl 3s ease-in-out infinite;}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.tmain{font-size:26px;font-weight:bold;color:var(--gold);letter-spacing:2px;}
+.tsub{font-size:12px;color:var(--text2);letter-spacing:4px;}
+.btn{padding:10px 22px;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s;}
+.btn:hover{background:#0e1a2e;border-color:var(--blue);color:#fff;}
+.btnp{background:#1a3a6e;border-color:var(--blue);color:#fff;}
+.btnp:hover{background:#2a4a8e;}
+.mode-grid{display:flex;flex-direction:column;gap:10px;width:260px;}
+.mode-btn{width:100%;padding:12px 16px;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:10px;cursor:pointer;font-size:13px;transition:all .2s;text-align:left;display:flex;align-items:center;gap:10px;}
+.mode-btn:hover{background:#0e1a2e;border-color:var(--blue);}
+.mico{font-size:22px;}.mtxt{display:flex;flex-direction:column;}
+.mlbl{font-weight:bold;font-size:13px;color:white;}
+.msub{font-size:10px;color:var(--text2);margin-top:1px;}
+#lobby-screen{background:radial-gradient(ellipse at center bottom,#0d2545,#020810);align-items:center;justify-content:center;gap:18px;text-align:center;}
+.lobby-box{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px 28px;width:320px;display:flex;flex-direction:column;gap:14px;}
+.lobby-title{font-size:16px;font-weight:bold;color:var(--gold);}
+.lobby-code{font-size:36px;font-weight:bold;color:var(--gold);letter-spacing:8px;background:#0a1525;border-radius:8px;padding:12px;border:1px solid var(--border);}
+.lobby-status{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;justify-content:center;}
+.dot-anim{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:blink 1s ease-in-out infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.inp{padding:10px 14px;background:#0a1525;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:18px;text-align:center;letter-spacing:4px;width:100%;text-transform:uppercase;}
+.inp:focus{outline:none;border-color:var(--blue);}
+.sep-or{font-size:11px;color:var(--text2);position:relative;}
+.sep-or::before,.sep-or::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--border);}
+.sep-or::before{left:0;}.sep-or::after{right:0;}
+.err-msg{font-size:11px;color:var(--red);min-height:16px;}
+#game-screen{background:var(--bg);}
+.gwrap{display:flex;height:100vh;gap:4px;padding:4px;}
+.gmain{display:flex;flex-direction:column;flex:1;gap:3px;min-width:0;overflow:hidden;position:relative;}
+.sbar{display:flex;align-items:center;gap:7px;padding:3px 7px;background:var(--panel);border-radius:7px;border:1px solid var(--border);cursor:pointer;flex-shrink:0;}
+.hname{font-weight:bold;font-size:11px;color:var(--gold);white-space:nowrap;}
+.hpbar{flex:1;height:12px;background:#1a1a1a;border-radius:6px;overflow:hidden;position:relative;min-width:60px;}
+.hpfill{height:100%;border-radius:6px;transition:width .4s;}
+.hpfill.hi{background:linear-gradient(90deg,#4caf7d,#81c784);}
+.hpfill.mi{background:linear-gradient(90deg,#ffd600,#ffb300);}
+.hpfill.lo{background:linear-gradient(90deg,#e85555,#ff6b35);}
+.hptxt{position:absolute;right:4px;top:0;font-size:9px;line-height:12px;color:#fff;font-weight:bold;}
+.mdots{display:flex;gap:2px;flex-wrap:wrap;max-width:110px;}
+.mdot{width:11px;height:11px;border-radius:50%;background:#1a2a4a;border:1px solid #2a4a8a;transition:all .2s;}
+.mdot.on{background:radial-gradient(circle,#7ab8ff,#2a6aff);border-color:#7ab8ff;}
+.dinfo{font-size:9px;color:var(--text2);white-space:nowrap;}
+.ebtn{padding:3px 9px;font-size:10px;white-space:nowrap;}
+.ptag{font-size:9px;font-weight:bold;padding:1px 5px;border-radius:3px;white-space:nowrap;}
+.t1{background:#1a3a6e;color:#7ab8ff;}.t2{background:#3a1a1a;color:#ff8a65;}.tai{background:#1a0a2e;color:#ce93d8;}
+.crow{display:flex;align-items:center;gap:6px;padding:0 4px;flex-shrink:0;}
+.sep{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);}
+.tbadge{font-size:10px;color:var(--text2);white-space:nowrap;}
+.thint{text-align:center;font-size:10px;color:var(--gold);padding:2px;animation:pu .5s ease-in-out infinite alternate;flex-shrink:0;}
+@keyframes pu{from{opacity:.6}to{opacity:1}}
+.brow{display:flex;gap:3px;min-height:86px;background:rgba(255,255,255,.025);border-radius:7px;padding:3px;border:1px solid rgba(255,255,255,.05);overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;flex-shrink:0;}
+.brow::-webkit-scrollbar{height:3px;}.brow::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.bempty{color:var(--text2);font-size:10px;align-self:center;padding:8px;white-space:nowrap;}
+.hand{display:flex;gap:3px;padding:3px;overflow-x:auto;flex-shrink:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent;min-height:92px;}
+.hand::-webkit-scrollbar{height:3px;}.hand::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.cbk{width:58px;min-width:58px;height:80px;border-radius:7px;background:linear-gradient(135deg,#0a1a3a,#0d2545);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.waiting-overlay{position:absolute;inset:0;background:rgba(5,9,15,.75);display:flex;align-items:center;justify-content:center;z-index:50;border-radius:7px;}
+.online-badge{font-size:9px;padding:1px 6px;border-radius:3px;background:#0a2a0a;border:1px solid #2a6a2a;color:#4caf7d;}
+.card{width:64px;min-width:64px;height:84px;border-radius:7px;border:1px solid var(--border);cursor:pointer;transition:transform .12s,box-shadow .12s;display:flex;flex-direction:column;overflow:hidden;position:relative;background:var(--panel);flex-shrink:0;}
+.card:hover{transform:translateY(-5px) scale(1.06);z-index:10;}
+.card.sel{border-color:var(--gold);box-shadow:0 0 10px var(--gold);transform:translateY(-7px) scale(1.08);z-index:20;}
+.card.exh{opacity:.52;filter:grayscale(.4);}
+.card.atk{border-color:var(--red);animation:pr .75s ease-in-out infinite alternate;}
+@keyframes pr{from{box-shadow:0 0 5px rgba(232,85,85,.4)}to{box-shadow:0 0 11px rgba(232,85,85,.75)}}
+.card.leg::before{content:'';position:absolute;inset:0;border-radius:7px;background:linear-gradient(135deg,rgba(232,196,106,.15),transparent 50%);pointer-events:none;}
+.card.leg{border-width:2px;}.card.dim{opacity:.6;}
+.ctop{padding:2px 3px;display:flex;justify-content:space-between;align-items:center;}
+.ccost{width:15px;height:15px;border-radius:50%;background:radial-gradient(circle,#7ab8ff,#1a4a9a);color:#fff;font-size:8px;font-weight:bold;display:flex;align-items:center;justify-content:center;}
+.crank{font-size:7px;color:var(--text2);}
+.cemoji{font-size:22px;text-align:center;line-height:1;padding:1px 0;}
+.cname{font-size:7px;font-weight:bold;color:#fff;text-align:center;padding:0 2px;line-height:1.2;}
+.cbadge{font-size:6px;text-align:center;padding:1px 2px;margin:1px 2px;border-radius:3px;}
+.cabtxt{font-size:6px;color:var(--text2);text-align:center;padding:0 2px;line-height:1.2;}
+.cstats{display:flex;justify-content:space-between;padding:1px 4px;margin-top:auto;border-top:1px solid rgba(255,255,255,.1);}
+.satk{color:var(--red);font-size:9px;font-weight:bold;}.shp{color:var(--green);font-size:9px;font-weight:bold;}
+.chpbar{position:absolute;bottom:0;left:0;right:0;height:3px;background:#111;}
+.chpfill{height:100%;transition:width .3s;}.sico{position:absolute;top:1px;font-size:8px;}
+.ew{background:linear-gradient(160deg,#0d2545,#1565c0);border-color:#1e88e5;}
+.ef{background:linear-gradient(160deg,#3a1200,#b71c1c);border-color:#ff6b35;}
+.ev{background:linear-gradient(160deg,#1a0a2e,#6a1b9a);border-color:#9c27b0;}
+.ewi{background:linear-gradient(160deg,#003038,#006064);border-color:#26c6da;}
+.ee{background:linear-gradient(160deg,#1a2a00,#33691e);border-color:#8bc34a;}
+.ep{background:linear-gradient(160deg,#0d1a00,#1b5e20);border-color:#76ff03;}
+.el{background:linear-gradient(160deg,#2a2000,#f57f17);border-color:#ffd600;}
+.ei{background:linear-gradient(160deg,#002030,#006064);border-color:#80deea;}
+.esh{background:linear-gradient(160deg,#0a0a0a,#263238);border-color:#546e7a;}
+.esp{background:linear-gradient(160deg,#1a1a0a,#4a3a00);border-color:var(--gold);}
+.bw{background:#1565c022;color:#64b5f6;}.bf{background:#b71c1c22;color:#ff8a65;}.bv{background:#6a1b9a22;color:#ce93d8;}
+.bwi{background:#00606422;color:#80deea;}.be{background:#33691e22;color:#aed581;}.bp{background:#1b5e2022;color:#b9f6ca;}
+.bl{background:#f57f1722;color:#fff176;}.bi{background:#00606422;color:#b2ebf2;}.bsh{background:#26323822;color:#90a4ae;}.bsp{background:#4a3a0022;color:var(--gold);}
+.side{width:186px;min-width:186px;display:flex;flex-direction:column;gap:5px;padding:2px;}
+.pbox{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:9px;flex-shrink:0;}
+.ptitle{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:5px;}
+.dcb{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.demoji{font-size:34px;line-height:1;}.dname{font-size:11px;font-weight:bold;color:var(--gold);text-align:center;line-height:1.3;}
+.debadge{font-size:8px;padding:2px 7px;border-radius:4px;text-transform:capitalize;}
+.dstrow{display:flex;gap:10px;justify-content:center;}
+.dst{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.dstv{font-size:17px;font-weight:bold;}.dstl{font-size:7px;color:var(--text2);text-transform:uppercase;}
+.drkbar{width:100%;background:#0a1220;border-radius:4px;overflow:hidden;height:5px;}
+.drkfill{height:100%;border-radius:4px;transition:width .4s;}
+.drklbl{font-size:8px;color:var(--text2);display:flex;justify-content:space-between;margin-bottom:2px;}
+.dab{width:100%;background:#070f1e;border-radius:6px;padding:6px 8px;border-left:2px solid var(--blue);}
+.dabn{font-size:9px;font-weight:bold;color:#7ab8ff;margin-bottom:3px;}.dabd{font-size:9px;color:var(--text);line-height:1.5;}
+.dsb{width:100%;background:#070f1e;border-radius:6px;padding:7px 9px;border-left:2px solid var(--gold);}
+.dsbn{font-size:9px;font-weight:bold;color:var(--gold);margin-bottom:4px;}.dsbd{font-size:9px;color:var(--text);line-height:1.6;}
+.dsbd .hl{color:#7ab8ff;font-weight:bold;}.dsbd .dm{color:var(--red);font-weight:bold;}.dsbd .he{color:var(--green);font-weight:bold;}
+.dscond{font-size:8px;color:#e8c46a88;margin-top:4px;font-style:italic;}
+.dlore{font-size:8px;color:var(--text2);line-height:1.4;font-style:italic;text-align:center;}
+.dstbr{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;}
+.sbadge{font-size:8px;padding:2px 5px;border-radius:3px;}
+.sburn{background:#3a1200;color:#ff8a65;}.sfrez{background:#002030;color:#80deea;}.sstun{background:#2a2000;color:#fff176;}
+.dempty{color:var(--text2);font-size:9px;text-align:center;padding:12px 6px;line-height:1.6;}
+.dact{width:100%;padding:5px;font-size:10px;border-radius:6px;border:1px solid var(--border);background:#0d1a2e;color:var(--text);cursor:pointer;transition:all .2s;margin-top:3px;}
+.dact:hover{background:var(--panel);border-color:var(--blue);}
+.dact.play{background:#1a3a6e;border-color:var(--blue);color:#fff;}.dact.play:hover{background:#2a4a8e;}
+.dact.aatk{background:#3a1a1a;border-color:var(--red);color:var(--red);}
+.mcpill{display:inline-flex;align-items:center;gap:4px;background:#1a2a4a;border-radius:10px;padding:2px 8px;font-size:9px;color:#7ab8ff;margin-bottom:2px;}
+.logbox{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;min-height:0;}
+.le{font-size:8px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text2);line-height:1.4;}
+.le.imp{color:var(--gold);}.le.atk{color:#ff8a65;}.le.hl{color:var(--green);}
+#victory-screen{background:radial-gradient(ellipse at center,#0d2545,#020810);align-items:center;justify-content:center;gap:16px;text-align:center;}
+.vico{font-size:72px;}.vtit{font-size:30px;font-weight:bold;color:var(--gold);}
+.fdmg{position:fixed;font-size:20px;font-weight:bold;pointer-events:none;z-index:200;animation:fu .9s ease-out forwards;}
+@keyframes fu{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px) scale(1.3)}}
+.fhe{color:var(--green);}.fat{color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="title-screen" class="screen active">
+  <div class="twh">🐋</div>
+  <div class="tmain">THE ALL-DEVOURING WHALE</div>
+  <div class="tsub">KUN TUN TIANXIA · CARD GAME</div>
+  <div class="mode-grid">
+    <button class="mode-btn" id="btn-ai"><span class="mico">🤖</span><span class="mtxt"><span class="mlbl">Vs IA</span><span class="msub">Affrontez l'intelligence artificielle</span></span></button>
+    <button class="mode-btn" id="btn-2p"><span class="mico">👥</span><span class="mtxt"><span class="mlbl">2 Joueurs local</span><span class="msub">Hot-seat sur le même écran</span></span></button>
+    <button class="mode-btn" id="btn-online"><span class="mico">🌐</span><span class="mtxt"><span class="mlbl">En ligne</span><span class="msub">Créer ou rejoindre une partie</span></span></button>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby-screen" class="screen">
+  <div style="position:absolute;top:12px;left:12px"><button class="btn" id="btn-back-lobby">← Retour</button></div>
+  <div class="lobby-box">
+    <div class="lobby-title">🌐 Partie en ligne</div>
+    <div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Partagez ce code avec votre adversaire :</div>
+      <div class="lobby-code" id="lobby-code">------</div>
+      <div class="lobby-status" style="margin-top:8px"><div class="dot-anim"></div><span id="lobby-status-txt">En attente d'un adversaire…</span></div>
+      <button class="btn" style="font-size:11px;padding:6px 12px;width:100%;margin-top:8px" id="btn-copy-code">📋 Copier le code</button>
+    </div>
+    <div class="sep-or">ou rejoindre</div>
+    <div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Entrez le code d'une partie :</div>
+      <input class="inp" id="join-input" maxlength="6" placeholder="ABCDEF">
+      <div class="err-msg" id="join-err"></div>
+      <button class="btn btnp" style="width:100%;margin-top:6px" id="btn-join">Rejoindre la partie</button>
+    </div>
+    <div id="diag-box" style="margin-top:8px;background:#070f1e;border:1px solid var(--border);border-radius:6px;padding:6px;max-height:120px;overflow-y:auto;text-align:left;font-family:monospace;font-size:8px;color:#7aaad4;line-height:1.5"></div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen" class="screen">
+  <div class="gwrap">
+    <div class="gmain">
+      <div class="sbar" id="p2-status">
+        <span class="ptag tai" id="p2-tag">ADV</span>
+        <span class="hname" id="p2-name">Adversaire</span>
+        <div class="hpbar"><div class="hpfill hi" id="p2-hpf" style="width:100%"></div><span class="hptxt" id="p2-hp">30</span></div>
+        <div class="mdots" id="p2-mana"></div>
+        <span class="dinfo" id="p2-deck">🃏30</span>
+        <span class="online-badge" id="online-badge" style="display:none">🟢 EN LIGNE</span>
+      </div>
+      <div class="hand" id="p2-hand"></div>
+      <div class="brow" id="p2-board"><span class="bempty">Zone adverse</span></div>
+      <div class="crow"><div class="sep"></div><span class="tbadge" id="turn-badge">Tour 1</span><div class="sep"></div></div>
+      <div id="target-hint" class="thint" style="display:none">👆 Cliquez sur une cible ennemie</div>
+      <div class="brow" id="p1-board"><span class="bempty">Votre zone</span></div>
+      <div class="sbar" id="p1-status">
+        <span class="ptag t1" id="p1-tag">P1</span>
+        <span class="hname" id="p1-name">Fan Lingxiao</span>
+        <div class="hpbar"><div class="hpfill hi" id="p1-hpf" style="width:100%"></div><span class="hptxt" id="p1-hp">30</span></div>
+        <div class="mdots" id="p1-mana"></div>
+        <span class="dinfo" id="p1-deck">🃏30</span>
+        <button class="btn btnp ebtn" id="btn-end">Fin ▶</button>
+      </div>
+      <div class="hand" id="p1-hand"></div>
+      <div class="waiting-overlay" id="waiting-overlay" style="display:none">
+        <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div class="dot-anim" style="width:14px;height:14px"></div>
+          <div style="font-size:12px;color:var(--text2)">En attente du tour adverse…</div>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="pbox" style="flex:none">
+        <div class="ptitle">Détail de la carte</div>
+        <div id="detail-panel"><div class="dempty">Cliquez sur une carte.</div></div>
+      </div>
+      <div class="pbox logbox">
+        <div class="ptitle">Journal de combat</div>
+        <div id="log-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VICTORY -->
+<div id="victory-screen" class="screen">
+  <div class="vico" id="vic-icon">🏆</div>
+  <div class="vtit" id="vic-title">Victoire !</div>
+  <div style="color:var(--text2);font-size:14px;margin-bottom:8px" id="vic-sub"></div>
+  <button class="btn btnp" id="btn-return">🏠 Menu principal</button>
+</div>
+
+<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
+<script>
+// ══════════════════════════════════════
+// ONLINE via ABLY (SDK officiel)
+// Fonctionne une fois le fichier hébergé hors sandbox.
+// ══════════════════════════════════════
+const ABLY_KEY = 'eCxmqQ.MqT2hg:6n2y4uDk2hmPLX-axvojqnFmPipcpDheq4fpngqTMKU';
+let ably = null, chan = null;
+let myRole = null, myRoomCode = null, lobbyHostBeat = null;
+
+function diag(msg, type){
+  const box = document.getElementById('diag-box');
+  if(!box) return;
+  const colors = {ok:'#4caf7d', err:'#e85555', info:'#7aaad4', send:'#e8c46a'};
+  const time = new Date().toLocaleTimeString('fr-FR',{hour12:false});
+  const line = document.createElement('div');
+  line.style.color = colors[type]||'#7aaad4';
+  line.textContent = `[${time}] ${msg}`;
+  box.appendChild(line); box.scrollTop = box.scrollHeight;
+}
+
+function genCode(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];
+  return s;
+}
+
+function connectAbly(cb){
+  if(ably && ably.connection.state==='connected'){ cb(); return; }
+  if(typeof Ably==='undefined'){
+    diag('⏳ SDK Ably pas encore prêt, nouvelle tentative…', 'info');
+    // Réessaie pendant 5s au cas où le script charge encore
+    let tries = 0;
+    const wait = setInterval(()=>{
+      tries++;
+      if(typeof Ably!=='undefined'){ clearInterval(wait); _doConnect(cb); }
+      else if(tries>25){ clearInterval(wait); diag('❌ SDK Ably introuvable. Vérifiez votre connexion internet et que le fichier est bien hébergé (pas ouvert en local file://).', 'err'); }
+    }, 200);
+    return;
+  }
+  _doConnect(cb);
+}
+function _doConnect(cb){
+  diag('🔌 Connexion à Ably…', 'info');
+  ably = new Ably.Realtime({ key: ABLY_KEY });
+  ably.connection.once('connected', ()=>{ diag('✅ Connecté à Ably', 'ok'); cb(); });
+  ably.connection.on('failed', (e)=>diag('❌ Connexion Ably échouée : '+(e&&e.reason&&e.reason.message||''), 'err'));
+}
+
+function createRoom(){
+  const code = genCode();
+  myRoomCode = code; myRole = 'host';
+  document.getElementById('lobby-code').textContent = code;
+  document.getElementById('lobby-status-txt').textContent = "En attente d'un adversaire…";
+  diag('🎮 Room créée : '+code+' (HÔTE)', 'ok');
+  connectAbly(()=>{
+    chan = ably.channels.get('whale-'+code);
+    chan.subscribe('guest-join', ()=>{
+      diag('✅ Invité connecté !', 'ok');
+      document.getElementById('lobby-status-txt').textContent = 'Adversaire connecté ! Démarrage…';
+      chan.publish('host-ack', {}, err=>{ if(err) diag('❌ publish host-ack rejeté: '+err.message,'err'); });
+      setTimeout(()=>chan.publish('host-ack', {}), 500);
+      setTimeout(()=>chan.publish('host-ack', {}), 1200);
+      if(!window._hostStarted){ window._hostStarted=true; setTimeout(()=>startOnlineGame(), 800); }
+    }, err=>{ if(err) diag('❌ abonnement guest-join rejeté: '+err.message,'err'); else diag('👂 Abonné à guest-join, en attente…','info'); });
+    chan.subscribe('state', m=>applyRemoteState(m.data));
+  });
+}
+
+function joinRoom(code){
+  code = code.toUpperCase().trim();
+  if(code.length!==6){ document.getElementById('join-err').textContent='Code invalide.'; return; }
+  document.getElementById('join-err').textContent='';
+  document.getElementById('btn-join').textContent='Connexion…';
+  myRoomCode = code; myRole = 'guest';
+  diag('🔑 Connexion à : '+code+' (INVITÉ)', 'info');
+  connectAbly(()=>{
+    chan = ably.channels.get('whale-'+code);
+    let joined = false;
+    chan.subscribe('host-ack', ()=>{
+      if(joined) return;
+      joined = true;
+      diag('🚀 Confirmation reçue !', 'ok');
+      if(window._joinBeat){ clearInterval(window._joinBeat); window._joinBeat=null; }
+      setTimeout(()=>startOnlineGame(), 300);
+    }, err=>{ if(err) diag('❌ abonnement host-ack rejeté: '+err.message,'err'); });
+    chan.subscribe('state', m=>applyRemoteState(m.data));
+    chan.publish('guest-join', {}, err=>{
+      if(err) diag('❌ publish guest-join REJETÉ: '+err.message,'err');
+      else diag('✅ guest-join envoyé avec succès','ok');
+    });
+    diag('✏️ Présence signalée, attente de l\'hôte…', 'send');
+    window._joinBeat = setInterval(()=>{
+      if(joined){ clearInterval(window._joinBeat); window._joinBeat=null; return; }
+      chan.publish('guest-join', {});
+    }, 1500);
+  });
+}
+
+function publishState(){
+  if(G.mode!=='online' || !chan) return;
+  chan.publish('state', JSON.parse(JSON.stringify(G)));
+}
+
+function startOnlineGame(){ showScreen('game-screen'); initGame('online'); }
+function netStopPoll(){ if(chan){ chan.unsubscribe(); chan=null; } if(lobbyHostBeat){clearInterval(lobbyHostBeat);lobbyHostBeat=null;} }
+
+// ══════════════════════════════════════
+// CARD DATA
+// ══════════════════════════════════════
+const ECLS={water:'ew',fire:'ef',void:'ev',wind:'ewi',earth:'ee',poison:'ep',lightning:'el',ice:'ei',shadow:'esh',spell:'esp'};
+const BCLS={water:'bw',fire:'bf',void:'bv',wind:'bwi',earth:'be',poison:'bp',lightning:'bl',ice:'bi',shadow:'bsh',spell:'bsp'};
+const RANK_ORD={Infancy:0,Growth:1,Lord:2,Emperor:3};
+const RANK_COL={Infancy:'#7aaad4',Growth:'#4caf7d',Lord:'#e8c46a',Emperor:'#e85555'};
+const SD={
+  tide_wave:{e:`Inflige <span class="dm">3 dégâts</span> au héros ennemi.<br><span class="dscond">+<span class="dm">2</span> si Nian en jeu.</span>`,t:'Combo avec Nian.'},
+  water_shield:{e:`<span class="he">+2 PV</span> à votre premier spirit pet.`,t:'Maintient une créature en vie.'},
+  spirit_atom_water:{e:`<span class="he">+1 ATK et +1 PV permanents</span> à un allié <span class="hl">Eau</span>.`,t:'Buff permanent.'},
+  deep_current:{e:`<span class="he">Piochez 2 cartes</span> + <span class="he">+2 ATK</span> à un allié.`,t:'Double effet.'},
+  fire_atom:{e:`<span class="dm">+2 ATK temporaire</span> à un allié <span class="hl">Feu</span>.`,t:'Pour assurer un kill.'},
+  fireball:{e:`<span class="dm">3 dégâts</span> au premier spirit pet ennemi, ou héros si plateau vide.`,t:'Polyvalent.'},
+  inferno:{e:`<span class="dm">2 dégâts</span> à <b>tous les spirit pets ennemis</b> + <span class="dm">2 dmg</span> héros.`,t:'Board clear partiel.'},
+  void_atom:{e:`<span class="he">+2/+2 permanents</span> à un allié <span class="hl">Vide/Ombre</span>.`,t:'Buff massif.'},
+  darkness_wave:{e:`<b>Détruit</b> un spirit pet ennemi ayant <span class="dm">≤ 2 ATK</span>.`,t:'Suppression ciblée.'},
+  soul_drain:{e:`<b>Vole <span class="dm">3 PV</span></b> au héros → <span class="he">+3 PV</span> pour vous.`,t:'Double utilité.'},
+  ice_atom:{e:`<b>Gèle</b> le premier spirit pet ennemi <span class="hl">1 tour</span>.`,t:'Neutralisation.'},
+  blizzard_spell:{e:`<b>Gèle TOUS les ennemis</b> <span class="hl">1 tour</span>.`,t:'Board freeze total.'},
+  lightning_atom:{e:`<span class="dm">+2 ATK temporaire</span> à votre premier spirit pet.`,t:'Boost rapide.'},
+  chain_lightning:{e:`<span class="dm">2 dmg</span> + rebond <span class="dm">1 dmg</span> sur 2e cible.`,t:'Peut toucher 2 cibles.'},
+  wind_atom:{e:`<span class="he">+1 ATK temporaire</span> à <b>tous</b> vos spirit pets.`,t:'Buff de masse.'},
+  cyclone:{e:`Renvoie le premier spirit pet ennemi dans la <b>main adverse</b>.`,t:'Contrôle de tempo.'},
+  poison_atom:{e:`<span class="dm">1 dégât/tour × 3 tours</span> sur une cible.`,t:'Efficace sur les tanks.'},
+  earthquake:{e:`<span class="dm">2 dégâts</span> à <b>TOUS les spirit pets</b>, alliés compris. ⚠️`,t:'Board wipe symétrique.'},
+  summoner_ring:{e:`Rappelle un spirit pet <span class="hl">coût≤3</span> depuis la défausse.`,t:'Recyclage puissant.'},
+  spirit_contract:{e:`<span class="he">Piochez 2 cartes</span>.`,t:'Indispensable.'},
+  evolution_burst:{e:`<span class="he">+3 ATK et +3 PV permanents</span> à un allié.`,t:'Transforme une créature.'},
+  masters_will:{e:`Un allié attaque <b>deux fois</b> ce tour. <span class="hl">Coût : 0 mana.</span>`,t:'Combo mortel.'},
+  cultivation_break:{e:`<span class="he">+3 mana</span> ce tour seulement.`,t:'Jouer une grosse carte plus tôt.'},
+  betrayal:{e:`<b>Détruit</b> un spirit pet ennemi de rang <span class="hl">≤ Lord</span>.`,t:'Inefficace sur Emperor.'},
+  lingxiao_return:{e:`<span class="he">Piochez 3 cartes</span> + <span class="he">+2 PV</span>.`,t:'Combo draw + soin.'},
+};
+
+const CARDS=[
+  {id:'nian1',name:'Nian',emoji:'🐟',elem:'water',type:'creature',cost:1,atk:1,hp:2,rank:'Infancy',ability:'Evolve',aDesc:'+1/+1 après 2 tours en jeu',desc:'Le petit poisson-chat de Liu Fengmang.'},
+  {id:'nian2',name:'Nian Growth',emoji:'🐠',elem:'water',type:'creature',cost:3,atk:3,hp:4,rank:'Growth',ability:'Splash',aDesc:'1 dmg à tous les ennemis à la convocation',desc:'Nian maîtrisant les courants.'},
+  {id:'kun_small',name:'Petit Kun',emoji:'🐡',elem:'water',type:'creature',cost:2,atk:2,hp:3,rank:'Growth',ability:'Absorb',aDesc:'+1 ATK si un allié meurt ce tour',desc:'Forme juvénile du Kun.'},
+  {id:'tidal_shrimp',name:'Crevette Marée',emoji:'🦐',elem:'water',type:'creature',cost:1,atk:1,hp:1,rank:'Infancy',ability:'Quick',aDesc:'Attaque dès la convocation',desc:'Minuscule mais agile.'},
+  {id:'spirit_crab',name:'Crabe Spirituel',emoji:'🦀',elem:'water',type:'creature',cost:2,atk:2,hp:4,rank:'Growth',ability:'Shell',aDesc:'Réduit les dégâts reçus de 1',desc:'Carapace spirituelle.'},
+  {id:'ink_squid',name:'Calmar Encre',emoji:'🦑',elem:'water',type:'creature',cost:3,atk:2,hp:3,rank:'Growth',ability:'Blind',aDesc:'Cible perd 1 ATK ce tour',desc:'Encre perturbante.'},
+  {id:'spirit_turtle',name:'Tortue Esprit',emoji:'🐢',elem:'water',type:'creature',cost:3,atk:1,hp:6,rank:'Growth',ability:'Endure',aDesc:'Régénère 1 PV par tour',desc:'Longévité surnaturelle.'},
+  {id:'sea_serpent',name:'Serpent des Mers',emoji:'🐍',elem:'water',type:'creature',cost:4,atk:4,hp:4,rank:'Lord',ability:'Coil',aDesc:'Peut attaquer 2 fois par tour',desc:'Précision mortelle.'},
+  {id:'jellyfish_spirit',name:'Méduse Spectrale',emoji:'🪼',elem:'water',type:'creature',cost:2,atk:1,hp:3,rank:'Growth',ability:'Sting',aDesc:'Gèle la cible 1 tour',desc:'Filaments empoisonnants.'},
+  {id:'river_dragon',name:'Dragon Fluvial',emoji:'🐉',elem:'water',type:'creature',cost:6,atk:6,hp:6,rank:'Lord',ability:'Flood',aDesc:'À la mort: 3 dmg à tous ennemis',desc:'Rugissement diluvien.'},
+  {id:'kun_lord',name:'Kun Seigneur',emoji:'🐳',elem:'water',type:'creature',cost:7,atk:7,hp:8,rank:'Lord',ability:'Devour',aDesc:'Détruit un ennemi et gagne ses stats',desc:'Sa faim est insatiable.',legendary:true},
+  {id:'kun_emperor',name:'KUN L\'ABSOLU',emoji:'🌊',elem:'void',type:'creature',cost:10,atk:10,hp:12,rank:'Emperor',ability:'All-Devour',aDesc:'Détruit TOUS les ennemis, +2/+2 par cible',desc:'Il dévore le ciel et la terre.',legendary:true},
+  {id:'corpse_whale',name:'Baleine Cadavre',emoji:'💀',elem:'void',type:'creature',cost:8,atk:9,hp:10,rank:'Emperor',ability:'Corruption',aDesc:'2 dmg à tous ennemis chaque tour',desc:'Forme corrompue du Kun.',legendary:true},
+  {id:'tide_wave',name:'Vague de Marée',emoji:'🌊',elem:'water',type:'spell',cost:2,aDesc:'3 dmg héros (+2 si Nian)',desc:'Puissance des mers.'},
+  {id:'water_shield',name:'Bouclier Eau',emoji:'💧',elem:'water',type:'spell',cost:1,aDesc:'+2 PV à un allié',desc:'Armure aqueuse.'},
+  {id:'spirit_atom_water',name:'Atome Eau',emoji:'🔵',elem:'water',type:'spell',cost:1,aDesc:'+1/+1 permanent allié Eau',desc:'Énergie aquatique.'},
+  {id:'deep_current',name:'Courant Profond',emoji:'🫧',elem:'water',type:'spell',cost:3,aDesc:'Piocher 2 + +2 ATK allié',desc:'Courants abyssaux.'},
+  {id:'fire_fox1',name:'Renard Feu',emoji:'🦊',elem:'fire',type:'creature',cost:2,atk:2,hp:2,rank:'Growth',ability:'Burn',aDesc:'1 dmg/tour x2 sur la cible',desc:'Renard Queue de Feu.'},
+  {id:'fire_monkey',name:'Singe de Feu',emoji:'🐒',elem:'fire',type:'creature',cost:3,atk:4,hp:2,rank:'Growth',ability:'Fury',aDesc:'+2 ATK si son maître est blessé',desc:'Spirit pet feu redoutable.'},
+  {id:'flame_phoenix',name:'Phénix Flammes',emoji:'🦅',elem:'fire',type:'creature',cost:5,atk:5,hp:4,rank:'Lord',ability:'Rebirth',aDesc:'Revient avec 2 PV une fois',desc:'Renaît de ses cendres.',legendary:true},
+  {id:'ember_crow',name:'Corbeau Braise',emoji:'🐦',elem:'fire',type:'creature',cost:2,atk:2,hp:2,rank:'Growth',ability:'Scorch',aDesc:'Cible ne peut pas régénérer ce tour',desc:'Brûle énergie de guérison.'},
+  {id:'fire_salamander',name:'Salamandre',emoji:'🦎',elem:'fire',type:'creature',cost:3,atk:3,hp:3,rank:'Growth',ability:'Blaze Trail',aDesc:'+1 ATK à tous les alliés Feu',desc:'Traînée de feu.'},
+  {id:'magma_beetle',name:'Scarabée Lave',emoji:'🪲',elem:'fire',type:'creature',cost:1,atk:2,hp:1,rank:'Infancy',ability:'Quick',aDesc:'Attaque dès la convocation',desc:'Jaillissement de lave.'},
+  {id:'inferno_tiger',name:'Tigre Inferno',emoji:'🐯',elem:'fire',type:'creature',cost:5,atk:6,hp:4,rank:'Lord',ability:'Pounce',aDesc:'Peut attaquer le héros directement',desc:'Nul ne lui échappe.'},
+  {id:'fire_atom',name:'Atome Feu',emoji:'🔴',elem:'fire',type:'spell',cost:1,aDesc:'+2 ATK temporaire allié Feu',desc:'Énergie enflammée.'},
+  {id:'fireball',name:'Boule de Feu',emoji:'🔥',elem:'fire',type:'spell',cost:2,aDesc:'3 dégâts à une cible',desc:'Projectile dévastateur.'},
+  {id:'inferno',name:'Inferno',emoji:'🌋',elem:'fire',type:'spell',cost:4,aDesc:'2 dégâts à tous les ennemis',desc:'L\'embrasement total.'},
+  {id:'void_serpent',name:'Serpent Vide',emoji:'🐍',elem:'void',type:'creature',cost:4,atk:4,hp:3,rank:'Lord',ability:'Void Bite',aDesc:'Ignore Shell et réductions',desc:'Traverse toute défense.'},
+  {id:'shadow_wolf',name:'Loup Ombres',emoji:'🐺',elem:'shadow',type:'creature',cost:3,atk:3,hp:3,rank:'Growth',ability:'Stalk',aDesc:'+2 ATK contre un spirit pet épuisé',desc:'Traque dans l\'obscurité.'},
+  {id:'dark_ray',name:'Raie Ténèbres',emoji:'🦈',elem:'void',type:'creature',cost:4,atk:3,hp:5,rank:'Lord',ability:'Devour Soul',aDesc:'Vole 1 ATK à un ennemi',desc:'Dévore l\'énergie vitale.'},
+  {id:'phantom_fox',name:'Renard Fantôme',emoji:'🦊',elem:'shadow',type:'creature',cost:5,atk:4,hp:4,rank:'Lord',ability:'Illusion',aDesc:'50% de chance d\'esquiver',desc:'Maître des illusions.'},
+  {id:'void_atom',name:'Atome Vide',emoji:'🟣',elem:'void',type:'spell',cost:2,aDesc:'+2/+2 permanent allié Vide/Ombre',desc:'Énergie du néant.'},
+  {id:'darkness_wave',name:'Vague Ténèbres',emoji:'🌑',elem:'void',type:'spell',cost:3,aDesc:'Détruit un ennemi ≤2 ATK',desc:'L\'obscurité engloutit les faibles.'},
+  {id:'soul_drain',name:'Drain Âme',emoji:'💜',elem:'void',type:'spell',cost:3,aDesc:'Vole 3 PV au héros ennemi',desc:'Aspire l\'essence vitale.'},
+  {id:'ice_fox',name:'Renard Glace',emoji:'🦊',elem:'ice',type:'creature',cost:2,atk:2,hp:2,rank:'Growth',ability:'Freeze',aDesc:'Gèle un spirit pet ennemi 1 tour',desc:'Renard glacé de Muchuan.'},
+  {id:'frost_bear',name:'Ours du Givre',emoji:'🐻',elem:'ice',type:'creature',cost:4,atk:3,hp:6,rank:'Lord',ability:'Permafrost',aDesc:'Attaquants reçoivent 1 dmg retour',desc:'Colosse des terres gelées.'},
+  {id:'blizzard_hawk',name:'Faucon Blizzard',emoji:'🦅',elem:'ice',type:'creature',cost:3,atk:4,hp:2,rank:'Growth',ability:'Ice Strike',aDesc:'+2 ATK contre les spirit pets Feu',desc:'Tourbillon de glace.'},
+  {id:'crystal_serpent',name:'Serpent Cristal',emoji:'🐍',elem:'ice',type:'creature',cost:5,atk:4,hp:5,rank:'Lord',ability:'Crystal Armor',aDesc:'-2 dégâts reçus les 2 premiers tours',desc:'Écailles défensives.'},
+  {id:'ice_atom',name:'Atome Glace',emoji:'🔷',elem:'ice',type:'spell',cost:1,aDesc:'Gèle le premier ennemi 1 tour',desc:'Énergie glaciale.'},
+  {id:'blizzard_spell',name:'Blizzard',emoji:'❄️',elem:'ice',type:'spell',cost:4,aDesc:'Gèle TOUS les ennemis 1 tour',desc:'Tempête de glace totale.'},
+  {id:'thunder_hawk',name:'Faucon Tonnerre',emoji:'🦅',elem:'lightning',type:'creature',cost:3,atk:4,hp:2,rank:'Growth',ability:'Thunderstrike',aDesc:'Si tue un ennemi, attaque à nouveau',desc:'Plus rapide que l\'éclair.'},
+  {id:'lightning_eel',name:'Anguille Électrique',emoji:'🐟',elem:'lightning',type:'creature',cost:2,atk:2,hp:3,rank:'Growth',ability:'Shock',aDesc:'Étourdit la cible 1 tour',desc:'Champs électriques paralysants.'},
+  {id:'storm_dragon',name:'Dragon Tempête',emoji:'🐉',elem:'lightning',type:'creature',cost:7,atk:7,hp:6,rank:'Emperor',ability:'Thunderclap',aDesc:'2 dmg à tous ennemis à la convocation',desc:'Seigneur des tempêtes.',legendary:true},
+  {id:'lightning_atom',name:'Atome Foudre',emoji:'⚡',elem:'lightning',type:'spell',cost:1,aDesc:'+2 ATK temporaire premier spirit pet',desc:'Énergie électrique.'},
+  {id:'chain_lightning',name:'Foudre Chaîne',emoji:'🌩️',elem:'lightning',type:'spell',cost:3,aDesc:'2 dmg + rebond 1 dmg autre cible',desc:'La foudre rebondit.'},
+  {id:'wind_sparrow',name:'Moineau Vents',emoji:'🐦',elem:'wind',type:'creature',cost:1,atk:1,hp:2,rank:'Infancy',ability:'Evasion',aDesc:'30% de chance d\'esquiver',desc:'Porté par le vent.'},
+  {id:'tempest_hawk',name:'Faucon Tempête',emoji:'🦅',elem:'wind',type:'creature',cost:3,atk:3,hp:3,rank:'Growth',ability:'Wind Slash',aDesc:'1 dmg bonus cible + adjacent',desc:'Ailes tranchantes.'},
+  {id:'sky_whale',name:'Baleine Céleste',emoji:'🐳',elem:'wind',type:'creature',cost:6,atk:5,hp:7,rank:'Lord',ability:'Tailwind',aDesc:'+1 ATK à tous les alliés à la convocation',desc:'Baleine volante.',legendary:true},
+  {id:'wind_atom',name:'Atome Vent',emoji:'🟢',elem:'wind',type:'spell',cost:1,aDesc:'+1 ATK temporaire à TOUS les alliés',desc:'Énergie du vent.'},
+  {id:'cyclone',name:'Cyclone',emoji:'🌀',elem:'wind',type:'spell',cost:3,aDesc:'Renvoie un spirit pet ennemi en main',desc:'Tourbillon spirituel.'},
+  {id:'rhino_panda',name:'Panda Rhino',emoji:'🐼',elem:'earth',type:'creature',cost:4,atk:3,hp:7,rank:'Lord',ability:'Pigment Shift',aDesc:'Attaquant perd 2 ATK ce tour',desc:'Manipulation de pigmentation.'},
+  {id:'stone_tortoise',name:'Tortue Pierre',emoji:'🐢',elem:'earth',type:'creature',cost:3,atk:1,hp:8,rank:'Growth',ability:'Fortress',aDesc:'Alliés reçoivent -1 dmg',desc:'Carapace indestructible.'},
+  {id:'vine_serpent',name:'Serpent Liane',emoji:'🐍',elem:'poison',type:'creature',cost:2,atk:2,hp:3,rank:'Growth',ability:'Venom',aDesc:'1 dmg poison/tour x3',desc:'Venin corrompant.'},
+  {id:'poison_toad',name:'Crapaud Venimeux',emoji:'🐸',elem:'poison',type:'creature',cost:3,atk:2,hp:4,rank:'Growth',ability:'Toxic Cloud',aDesc:'À la mort: 2 dmg à tous ennemis',desc:'Brume toxique.'},
+  {id:'earth_bear',name:'Ours de Terre',emoji:'🐻',elem:'earth',type:'creature',cost:4,atk:4,hp:5,rank:'Lord',ability:'Slam',aDesc:'+2 ATK bonus une fois par tour',desc:'Force tellurique.'},
+  {id:'poison_atom',name:'Atome Poison',emoji:'☢️',elem:'poison',type:'spell',cost:2,aDesc:'1 dmg/tour x3 sur un ennemi',desc:'Poison spirituel.'},
+  {id:'earthquake',name:'Séisme',emoji:'🌍',elem:'earth',type:'spell',cost:4,aDesc:'2 dmg à TOUS les spirit pets',desc:'La terre tremble.'},
+  {id:'summoner_ring',name:'Anneau Invocateur',emoji:'💍',elem:'spell',type:'spell',cost:2,aDesc:'Rappelle spirit pet coût≤3 depuis défausse',desc:'Lien aux spirit pets perdus.'},
+  {id:'spirit_contract',name:'Contrat Spirituel',emoji:'📜',elem:'spell',type:'spell',cost:1,aDesc:'Piochez 2 cartes',desc:'Nouveau lien spirituel.'},
+  {id:'evolution_burst',name:'Évolution Forcée',emoji:'✨',elem:'spell',type:'spell',cost:3,aDesc:'+3 ATK et +3 PV permanents',desc:'Évolution brutale.'},
+  {id:'masters_will',name:'Volonté du Maître',emoji:'🧘',elem:'spell',type:'spell',cost:0,aDesc:'Un allié attaque deux fois ce tour',desc:'Transcende les limites.'},
+  {id:'cultivation_break',name:'Percée Cultivation',emoji:'💫',elem:'spell',type:'spell',cost:3,aDesc:'+3 mana ce tour',desc:'Libération d\'énergie.'},
+  {id:'betrayal',name:'Trahison du Kun',emoji:'⚡',elem:'void',type:'spell',cost:5,aDesc:'Détruit un ennemi rang ≤ Lord',desc:'Comme le Kun qui dévora son maître.'},
+  {id:'lingxiao_return',name:'Retour du Maître',emoji:'🌅',elem:'spell',type:'spell',cost:4,aDesc:'Piocher 3 cartes + 2 PV',desc:'Fan Lingxiao revient.',legendary:true},
+];
+
+// ══════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════
+let G={}, iid=0, _ic=null, _ip=null, _if=null, _pi=null;
+
+function myPi(){ return myRole==='guest'?1:0; }
+function isMyTurn(){ return G.mode!=='online' || G.ap===myPi(); }
+
+function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function mkDeck1(){
+  const ids=['nian1','nian2','kun_small','tidal_shrimp','spirit_crab','ink_squid','spirit_turtle','sea_serpent','jellyfish_spirit','river_dragon',
+    'tide_wave','tide_wave','water_shield','water_shield','spirit_atom_water','deep_current',
+    'fire_fox1','fire_monkey','ember_crow','fire_salamander','magma_beetle','inferno_tiger','fire_atom','fireball','fireball','inferno',
+    'void_serpent','shadow_wolf','dark_ray','darkness_wave','soul_drain',
+    'ice_fox','frost_bear','blizzard_hawk','ice_atom','blizzard_spell',
+    'thunder_hawk','lightning_eel','lightning_atom','chain_lightning',
+    'wind_sparrow','tempest_hawk','wind_atom','cyclone',
+    'rhino_panda','stone_tortoise','vine_serpent','poison_toad','earth_bear','poison_atom',
+    'summoner_ring','spirit_contract','spirit_contract','evolution_burst','masters_will','cultivation_break','betrayal','lingxiao_return','kun_lord'];
+  return shuffle(ids.map(id=>({...CARDS.find(c=>c.id===id)})).filter(Boolean));
+}
+function mkDeck2(){
+  const ids=['fire_fox1','fire_fox1','fire_monkey','fire_monkey','ember_crow','fire_salamander','magma_beetle','inferno_tiger',
+    'fire_atom','fire_atom','fireball','fireball','inferno','inferno',
+    'ice_fox','ice_fox','frost_bear','blizzard_hawk','blizzard_hawk','crystal_serpent','ice_atom','ice_atom','blizzard_spell',
+    'thunder_hawk','lightning_eel','lightning_eel','chain_lightning','chain_lightning','storm_dragon',
+    'wind_sparrow','wind_sparrow','tempest_hawk','tempest_hawk','sky_whale','wind_atom','cyclone',
+    'rhino_panda','stone_tortoise','stone_tortoise','vine_serpent','poison_toad','earth_bear','earthquake',
+    'void_serpent','shadow_wolf','dark_ray','phantom_fox','darkness_wave','soul_drain','void_atom','betrayal',
+    'spirit_contract','spirit_contract','evolution_burst','masters_will','lingxiao_return','corpse_whale'];
+  return shuffle(ids.map(id=>({...CARDS.find(c=>c.id===id)})).filter(Boolean));
+}
+function ci(card){return{...card,iid:iid++,curHp:card.hp,curAtk:card.atk,exhausted:true,burnTurns:0,burnDmg:0,frozen:0,stunned:0,evolveCounter:0};}
+
+function initGame(mode){
+  iid=0;_ic=null;_ip=null;_if=null;_pi=null;
+  G={mode,turn:1,ap:0,log:[],atking:null,gameOver:false,
+    p:[
+      {name:'Fan Lingxiao',hp:30,mhp:30,mana:0,mmana:0,deck:mkDeck1(),hand:[],board:[],disc:[],
+       tag:mode==='online'&&myRole==='host'?'VOUS':'P1'},
+      {name:mode==='ai'?'Bai Tanshu':mode==='online'?'Adversaire':'Yue Tong',
+       hp:30,mhp:30,mana:0,mmana:0,deck:mode==='ai'?mkDeck2():mkDeck1(),hand:[],board:[],disc:[],
+       tag:mode==='online'&&myRole==='guest'?'VOUS':mode==='ai'?'IA':'P2'},
+    ]};
+  draw(0,4); draw(1,4);
+  document.getElementById('online-badge').style.display = mode==='online'?'inline-block':'none';
+  if(mode==='online'){
+    // Subscribe to state updates from the other player
+    const startTs = Date.now();
+    netPoll('game:'+myRoomCode+':state', (remoteG)=>{
+      applyRemoteState(remoteG);
+    }, startTs);
+    // Host publishes initial state so guest can see it
+    if(myRole==='host') publishState();
+  }
+  setEmpty();
+  startTurn();
+}
+
+// ── ONLINE SYNC ──
+function publishState(){
+  if(G.mode!=='online') return;
+  netWrite('game:'+myRoomCode+':state', JSON.parse(JSON.stringify(G)));
+}
+
+function applyRemoteState(remoteG){
+  // Apply the full state received from opponent
+  G = remoteG;
+  iid = Math.max(iid, 10000);
+  _ic=null; _ip=null; _if=null; _pi=null;
+  setEmpty();
+  // If it's now our turn, start it
+  if(!G.gameOver && G.ap === myPi()){
+    startTurn();
+  } else {
+    renderAll();
+    updateWaiting();
+    if(G.gameOver) checkWin();
+  }
+}
+
+function updateWaiting(){
+  const ov = document.getElementById('waiting-overlay');
+  ov.style.display = (G.mode==='online' && !isMyTurn() && !G.gameOver) ? 'flex' : 'none';
+}
+
+// ── GAME LOGIC ──
+function draw(pi,n){
+  const p=G.p[pi];
+  for(let i=0;i<n;i++){if(!p.deck.length){log(`${p.name} n'a plus de cartes!`,'imp');return;}p.hand.push(p.deck.shift());}
+}
+
+function startTurn(){
+  const pi=G.ap, p=G.p[pi];
+  p.mmana=Math.min(10,G.turn+2); p.mana=p.mmana;
+  draw(pi,1);
+  p.board.forEach(c=>{
+    c.exhausted=false;
+    if(c.frozen>0){c.frozen--;if(c.frozen>0)c.exhausted=true;}
+    if(c.stunned>0){c.stunned--;if(c.stunned>0)c.exhausted=true;}
+    if(c.ability==='Evolve'){c.evolveCounter++;if(c.evolveCounter>=2){c.curAtk++;c.curHp++;log(`${c.name} évolue!`,'hl');}}
+    if(c.ability==='Endure'){c.curHp=Math.min(c.hp+3,c.curHp+1);log(`${c.name} régénère 1 PV`,'hl');}
+    if(c.burnTurns>0){c.curHp-=c.burnDmg||1;c.burnTurns--;log(`${c.name} brûlure`,'atk');}
+  });
+  p.board=p.board.filter(c=>c.curHp>0);
+  log(`─── Tour ${G.turn} — ${p.name} ───`,'imp');
+  // En online : republier l'état (pioche/mana à jour) pour que l'adversaire voie le plateau
+  if(G.mode==='online'){ G._needStartTurn=false; publishState(); }
+  renderAll();
+  updateWaiting();
+  if(pi===1&&G.mode==='ai') setTimeout(aiTurn,900);
+}
+
+function endTurn(){
+  if(G.gameOver) return;
+  if(G.mode==='online' && !isMyTurn()) return;
+  const pi=G.ap;
+  // Corruption en fin de tour
+  G.p[pi].board.forEach(c=>{
+    if(c.ability==='Corruption'){G.p[1-pi].board.forEach(e=>e.curHp-=2);G.p[1-pi].board=G.p[1-pi].board.filter(e=>e.curHp>0);log('Corruption: 2 dmg','atk');}
+  });
+  // Passer la main à l'adversaire
+  G.turn++; G.ap=1-pi; G.atking=null;
+  document.getElementById('target-hint').style.display='none';
+
+  if(G.mode==='online'){
+    // On marque que le NOUVEAU joueur actif doit démarrer son tour à la réception
+    G._needStartTurn = true;
+    publishState();        // envoie l'état "c'est ton tour" à l'adversaire
+    renderAll();
+    updateWaiting();       // affiche l'overlay d'attente chez nous
+  } else {
+    startTurn();
+  }
+}
+
+function playCard(pi,idx){
+  if(G.gameOver||G.ap!==pi) return;
+  if(G.mode==='online'&&!isMyTurn()) return;
+  const p=G.p[pi],card=p.hand[idx];
+  if(!card||p.mana<card.cost){log('Pas assez de mana!','imp');return;}
+  p.mana-=card.cost; p.hand.splice(idx,1);
+  if(card.type==='creature'){
+    const c=ci(card);
+    if(card.ability==='Splash'){G.p[1-pi].board.forEach(e=>e.curHp--);G.p[1-pi].board=G.p[1-pi].board.filter(e=>e.curHp>0);log(`Splash!`,'atk');}
+    if(card.ability==='Quick') c.exhausted=false;
+    if(card.ability==='Thunderclap'){G.p[1-pi].board.forEach(e=>e.curHp-=2);G.p[1-pi].board=G.p[1-pi].board.filter(e=>e.curHp>0);log(`Thunderclap!`,'atk');}
+    if(card.ability==='Tailwind'){p.board.forEach(a=>a.curAtk++);log('Tailwind: +1 ATK','hl');}
+    if(card.ability==='Blaze Trail'){p.board.filter(a=>a.elem==='fire').forEach(a=>a.curAtk++);log('Blaze Trail','hl');}
+    if(p.board.length<6) p.board.push(c);
+    log(`${p.name} invoque ${card.name}`);
+  } else {
+    spellExec(pi,card); p.disc.push(card);
+  }
+  G.p[1-pi].board=G.p[1-pi].board.filter(e=>e.curHp>0);
+  _pi=null; setEmpty(); checkWin();
+  if(G.mode==='online') publishState();
+  renderAll(); updateWaiting();
+}
+
+function spellExec(pi,card){
+  const p=G.p[pi],o=G.p[1-pi];
+  log(`${p.name} lance ${card.name}`,'imp');
+  switch(card.id){
+    case 'tide_wave':{let d=3+(p.board.some(c=>c.id==='nian1'||c.id==='nian2')?2:0);o.hp-=d;log(`Vague: ${d} dmg`,'atk');break;}
+    case 'water_shield':{const t=p.board[0];if(t){t.curHp+=2;log(`Bouclier: +2 PV`,'hl');}break;}
+    case 'spirit_atom_water':{const t=p.board.find(c=>c.elem==='water');if(t){t.curAtk++;t.curHp++;log('Atome Eau: +1/+1','hl');}break;}
+    case 'deep_current':{draw(pi,2);const t=p.board[0];if(t){t.curAtk+=2;log('Courant Profond','hl');}break;}
+    case 'fire_atom':{const t=p.board.find(c=>c.elem==='fire');if(t){t.curAtk+=2;log('Atome Feu: +2 ATK','hl');}break;}
+    case 'fireball':{const t=o.board[0];if(t){t.curHp-=3;log(`Fireball: 3 dmg`,'atk');}else{o.hp-=3;log('Fireball: 3 dmg héros','atk');}break;}
+    case 'inferno':{o.board.forEach(e=>e.curHp-=2);o.hp-=2;o.board=o.board.filter(e=>e.curHp>0);log('Inferno!','atk');break;}
+    case 'void_atom':{const t=p.board.find(c=>c.elem==='void'||c.elem==='shadow');if(t){t.curAtk+=2;t.curHp+=2;log('Atome Vide: +2/+2','hl');}break;}
+    case 'darkness_wave':{const t=o.board.find(c=>c.curAtk<=2);if(t){o.board=o.board.filter(c=>c.iid!==t.iid);log(`Ténèbres: détruit ${t.name}`,'atk');}break;}
+    case 'soul_drain':{o.hp-=3;p.hp=Math.min(35,p.hp+3);log('Drain: vole 3 PV','hl');break;}
+    case 'ice_atom':{const t=o.board[0];if(t){t.frozen=2;t.exhausted=true;log(`Gèle ${t.name}`,'atk');}break;}
+    case 'blizzard_spell':{o.board.forEach(e=>{e.frozen=2;e.exhausted=true;});log('Blizzard!','atk');break;}
+    case 'lightning_atom':{const t=p.board[0];if(t){t.curAtk+=2;log('Atome Foudre: +2 ATK','hl');}break;}
+    case 'chain_lightning':{if(o.board.length>0){o.board[0].curHp-=2;log(`Foudre: 2 dmg`,'atk');if(o.board.length>1){o.board[1].curHp-=1;log(`Rebond: 1 dmg`,'atk');}}else{o.hp-=2;log('Foudre: 2 dmg héros','atk');}break;}
+    case 'wind_atom':{p.board.forEach(c=>c.curAtk++);log('Vent: +1 ATK tous','hl');break;}
+    case 'cyclone':{const t=o.board[0];if(t){o.hand.push({...t});o.board=o.board.filter(c=>c.iid!==t.iid);log(`Cyclone: renvoie ${t.name}`,'atk');}break;}
+    case 'poison_atom':{const t=o.board[0];if(t){t.burnTurns=3;t.burnDmg=1;log(`Poison!`,'atk');}else o.hp--;break;}
+    case 'earthquake':{[...p.board,...o.board].forEach(c=>c.curHp-=2);p.board=p.board.filter(c=>c.curHp>0);o.board=o.board.filter(c=>c.curHp>0);log('Séisme!','atk');break;}
+    case 'summoner_ring':{const t=p.disc.find(c=>c.type==='creature'&&c.cost<=3);if(t){p.disc=p.disc.filter(x=>x!==t);p.board.push(ci(t));log(`Anneau: rappelle ${t.name}`,'hl');}break;}
+    case 'spirit_contract':{draw(pi,2);log('Contrat: +2 cartes','hl');break;}
+    case 'evolution_burst':{const t=p.board[0];if(t){t.curAtk+=3;t.curHp+=3;log(`Évolution!`,'hl');}break;}
+    case 'masters_will':{const t=p.board[0];if(t){t._da=true;log(`Volonté: double attaque`,'hl');}break;}
+    case 'cultivation_break':{p.mana+=3;log('Percée: +3 mana','hl');break;}
+    case 'betrayal':{const t=o.board.find(c=>c.rank!=='Emperor');if(t){o.board=o.board.filter(c=>c.iid!==t.iid);log(`Trahison: détruit ${t.name}`,'atk');}break;}
+    case 'lingxiao_return':{draw(pi,3);p.hp=Math.min(35,p.hp+2);log('Retour du Maître!','hl');break;}
+  }
+  o.board=o.board.filter(c=>c.curHp>0);
+  p.board=p.board.filter(c=>c.curHp>0);
+}
+
+function doAtk(api,ac,di,dt){
+  let atk=ac.curAtk;
+  if(ac.ability==='Ice Strike'&&dt&&dt.elem==='fire') atk+=2;
+  if(ac.ability==='Stalk'&&dt&&dt.exhausted) atk+=2;
+  if(!dt){
+    G.p[di].hp-=atk; log(`${ac.name}→héros: ${atk} dmg`,'atk'); flt(atk,false);
+  } else {
+    let dmg=atk;
+    if(dt.ability==='Shell') dmg=Math.max(0,dmg-1);
+    if(dt.ability==='Crystal Armor'&&dt.evolveCounter<3) dmg=Math.max(0,dmg-2);
+    if(dt.ability==='Illusion'&&Math.random()<0.5) log(`${dt.name} esquive!`,'imp');
+    else{dt.curHp-=dmg;log(`${ac.name}[${atk}]→${dt.name}: ${dmg} dmg`,'atk');flt(dmg,false);}
+    if(dt.ability==='Permafrost'){ac.curHp--;log('Permafrost: -1 PV','atk');}
+    if(dt.ability==='Pigment Shift'){ac.curAtk=Math.max(0,ac.curAtk-2);log('Pigment Shift: -2 ATK','atk');}
+    if(ac.ability==='Burn'&&!ac._burnt){dt.burnTurns=2;dt.burnDmg=1;ac._burnt=true;}
+    if(ac.ability==='Blind') dt.curAtk=Math.max(0,dt.curAtk-1);
+    if(ac.ability==='Shock'){dt.stunned=2;dt.exhausted=true;log(`${dt.name} étourdi!`,'atk');}
+    if(ac.ability==='Freeze'||ac.ability==='Sting'){dt.frozen=2;dt.exhausted=true;log(`${dt.name} gelé!`,'atk');}
+    if(ac.ability==='Venom'){dt.burnTurns=3;dt.burnDmg=1;}
+    if(ac.ability==='Devour'&&dt.curHp<=0){ac.curAtk+=dt.curAtk;ac.curHp+=dt.hp;log(`${ac.name} DÉVORE!`,'imp');}
+    if(ac.ability==='Devour Soul'){dt.curAtk=Math.max(0,dt.curAtk-1);ac.curAtk++;}
+    if(ac.ability==='Thunderstrike'&&dt.curHp<=0){const nx=G.p[di].board.find(c=>c.curHp>0&&c.iid!==dt.iid);G.p[di].board=G.p[di].board.filter(c=>c.curHp>0);if(nx){doAtk(api,ac,di,nx);return;}}
+    if(dt.ability==='Toxic Cloud'&&dt.curHp<=0){G.p[api].board.forEach(c=>c.curHp-=2);G.p[api].board=G.p[api].board.filter(c=>c.curHp>0);log('Toxic Cloud!','atk');}
+    if(dt.ability==='Flood'&&dt.curHp<=0){G.p[api].board.forEach(c=>c.curHp-=3);G.p[api].board=G.p[api].board.filter(c=>c.curHp>0);log('Flood!','atk');}
+  }
+  if(ac.ability==='All-Devour'){G.p[di].board.forEach(e=>{ac.curAtk+=2;ac.curHp+=2;});G.p[di].board=[];G.p[di].hp-=5;log('KUN DÉVORE TOUT!','imp');}
+  G.p[di].board=G.p[di].board.filter(c=>c.curHp>0);
+  G.p[api].board=G.p[api].board.filter(c=>c.curHp>0);
+  if(ac._da) ac._da=false; else ac.exhausted=true;
+  refInsp(); checkWin();
+  if(G.mode==='online') publishState();
+  renderAll(); updateWaiting();
+}
+
+function aiTurn(){
+  if(G.gameOver) return;
+  const p=G.p[1],o=G.p[0];
+  let pl=true;
+  while(pl){pl=false;for(let i=0;i<p.hand.length;i++){if(p.mana>=p.hand[i].cost){playCard(1,i);pl=true;break;}}}
+  p.board.forEach(c=>{if(!c.exhausted&&!c.frozen&&!c.stunned){if(o.board.length>0)doAtk(1,c,0,o.board[0]);else doAtk(1,c,0,null);}});
+  endTurn();
+}
+
+function checkWin(){
+  for(let pi=0;pi<2;pi++){
+    if(G.p[pi].hp<=0&&!G.gameOver){
+      G.gameOver=true;
+      const win = G.mode==='online'?pi!==myPi():pi===1;
+      document.getElementById('vic-icon').textContent=win?'🏆':'💀';
+      document.getElementById('vic-title').textContent=win?'Victoire !':'Défaite...';
+      document.getElementById('vic-sub').textContent=`${G.p[1-pi].name} remporte la bataille !`;
+      if(G.mode==='online') publishState();
+      showScreen('victory-screen');
+    }
+  }
+}
+
+// ── DETAIL PANEL ──
+function setEmpty(){document.getElementById('detail-panel').innerHTML='<div class="dempty">Cliquez sur une carte.</div>';}
+function showDetail(card,pi,from){
+  _ic=card;_ip=pi;_if=from;
+  const el=document.getElementById('detail-panel');
+  if(!card){setEmpty();return;}
+  const isCr=card.type==='creature';
+  const onBd=from==='board';
+  const rkPct=card.rank?((RANK_ORD[card.rank]||0)+1)/4*100:0;
+  const rkCol=RANK_COL[card.rank]||'#7aaad4';
+  const atkV=isCr?(onBd?card.curAtk:card.atk):null;
+  const hpV=isCr?(onBd?card.curHp:card.hp):null;
+  const atkD=onBd&&isCr?card.curAtk-card.atk:0;
+  const hpD=onBd&&isCr?card.curHp-card.hp:0;
+  const aC=atkD>0?'#4caf7d':atkD<0?'#e85555':'var(--red)';
+  const hC=hpD>0?'#4caf7d':hpD<0?'#e85555':'var(--green)';
+  let sb='';
+  if(card.frozen>0) sb+=`<span class="sbadge sfrez">❄️(${card.frozen}t)</span>`;
+  if(card.stunned>0) sb+=`<span class="sbadge sstun">💫(${card.stunned}t)</span>`;
+  if(card.burnTurns>0) sb+=`<span class="sbadge sburn">🔥×${card.burnTurns}</span>`;
+  const isActive = G.mode==='online'?(isMyTurn()&&pi===myPi()):G.ap===pi;
+  let act='';
+  if(from==='hand'&&isActive){
+    const ok=G.p[pi].mana>=(card.cost||0);
+    act=`<button class="dact play" ${ok?'':'disabled style="opacity:.5;cursor:default"'} onclick="playFromDetail()">▶ Jouer — ${card.cost} mana</button>`;
+  }
+  if(onBd&&isActive&&card.iid!==undefined){
+    const ca=!card.exhausted&&!card.frozen&&!card.stunned&&!G.atking;
+    if(ca) act=`<button class="dact aatk" onclick="atkFromDetail()">⚔️ Attaquer</button>`;
+    else if(card.exhausted) act=`<div style="font-size:9px;color:#666;text-align:center;padding:3px">💤 Épuisé ce tour</div>`;
+  }
+  let spb='';
+  if(!isCr){const sd=SD[card.id];if(sd) spb=`<div class="dsb"><div class="dsbn">⚡ Effet</div><div class="dsbd">${sd.e}</div>${sd.t?`<div class="dscond">💡 ${sd.t}</div>`:''}</div>`;}
+  let ab='';
+  if(isCr&&card.ability) ab=`<div class="dab"><div class="dabn">⚡ ${card.ability}</div><div class="dabd">${card.aDesc||''}</div></div>`;
+  el.innerHTML=`<div class="dcb">
+    <div class="demoji">${card.emoji}</div>
+    <div class="dname">${card.name}${card.legendary?' ★':''}</div>
+    <span class="debadge ${BCLS[card.elem]||'bsp'}">${card.elem||'sort'} · ${isCr?'créature':'sort'}</span>
+    ${isCr?`<div class="dstrow">
+      <div class="dst"><span class="dstv" style="color:${aC}">⚔${atkV}${atkD&&onBd?`<sup style="font-size:9px">${atkD>0?'+':''}${atkD}</sup>`:''}</span><span class="dstl">ATK</span></div>
+      <div class="dst"><span class="dstv" style="color:${hC}">♥${hpV}${hpD&&onBd?`<sup style="font-size:9px">${hpD>0?'+':''}${hpD}</sup>`:''}</span><span class="dstl">PV</span></div>
+      <div class="dst"><span class="dstv" style="color:#7ab8ff">${card.cost}</span><span class="dstl">Mana</span></div>
+    </div>
+    ${card.rank?`<div style="width:100%"><div class="drklbl"><span>Rang</span><span style="color:${rkCol};font-weight:bold">${card.rank}</span></div><div class="drkbar"><div class="drkfill" style="width:${rkPct}%;background:${rkCol}"></div></div></div>`:''}
+    `:`<div class="mcpill">💧 ${card.cost} mana</div>`}
+    ${ab}${spb}${sb?`<div class="dstbr">${sb}</div>`:''}
+    <div class="dlore">${card.desc||''}</div>${act}
+  </div>`;
+}
+function refInsp(){
+  if(!_ic||_if!=='board') return;
+  const s=G.p[_ip]&&G.p[_ip].board.find(c=>c.iid===_ic.iid);
+  if(s) showDetail(s,_ip,'board'); else setEmpty();
+}
+function playFromDetail(){if(_pi===null)return;playCard(_ip,_pi);}
+function atkFromDetail(){
+  if(!_ic||!isMyTurn()) return;
+  G.atking={pi:_ip,iid:_ic.iid};
+  document.getElementById('target-hint').style.display='block';
+  renderAll();
+}
+
+// ── INTERACTIONS ──
+function clickBoard(pi,ciid){
+  if(G.gameOver) return;
+  const card=G.p[pi].board.find(c=>c.iid===ciid);
+  if(!card) return;
+  if(G.atking){
+    if(G.atking.pi!==pi){
+      const ac=G.p[G.atking.pi].board.find(c=>c.iid===G.atking.iid);
+      if(ac) doAtk(G.atking.pi,ac,pi,card);
+      G.atking=null; document.getElementById('target-hint').style.display='none';
+    }
+    return;
+  }
+  showDetail(card,pi,'board'); renderAll();
+}
+function clickHand(pi,idx){
+  if(G.ap!==pi||!isMyTurn()) return;
+  const card=G.p[pi].hand[idx];
+  if(!card) return;
+  _pi=idx; _ip=pi; showDetail(card,pi,'hand'); renderAll();
+}
+function clickHero(pi){
+  if(G.gameOver||!G.atking) return;
+  if(G.atking.pi===pi) return;
+  const ac=G.p[G.atking.pi].board.find(c=>c.iid===G.atking.iid);
+  if(ac) doAtk(G.atking.pi,ac,pi,null);
+  G.atking=null; document.getElementById('target-hint').style.display='none';
+  renderAll();
+}
+
+// ── RENDER ──
+function renderAll(){
+  const bot=G.mode==='online'?myPi():0;
+  const top=1-bot;
+  const rSlot=(p,pref)=>{
+    const pct=Math.max(0,p.hp)/p.mhp*100;
+    document.getElementById(`${pref}-hp`).textContent=Math.max(0,p.hp);
+    const f=document.getElementById(`${pref}-hpf`);
+    f.style.width=pct+'%'; f.className='hpfill'+(pct>60?' hi':pct>30?' mi':' lo');
+    const md=document.getElementById(`${pref}-mana`); md.innerHTML='';
+    for(let i=0;i<p.mmana;i++){const d=document.createElement('div');d.className='mdot'+(i<p.mana?' on':'');md.appendChild(d);}
+    document.getElementById(`${pref}-deck`).textContent='🃏'+p.deck.length;
+    document.getElementById(`${pref}-name`).textContent=p.name;
+  };
+  rSlot(G.p[bot],'p1'); rSlot(G.p[top],'p2');
+  const tg1=document.getElementById('p1-tag'); tg1.textContent=G.p[bot].tag; tg1.className='ptag t1';
+  const tg2=document.getElementById('p2-tag'); tg2.textContent=G.p[top].tag; tg2.className='ptag'+(G.mode==='ai'?' tai':' t2');
+  document.getElementById('turn-badge').textContent=`Tour ${G.turn} — ${G.p[G.ap].name}`;
+  renderHandBot(bot); renderHandTop(top);
+  renderBoard(bot,'p1-board'); renderBoard(top,'p2-board');
+  renderLog();
+}
+function renderHandBot(pi){
+  const el=document.getElementById('p1-hand'); el.innerHTML='';
+  if(G.mode==='online'&&!isMyTurn()){el.innerHTML='<span style="color:var(--text2);font-size:10px;align-self:center;padding:8px">⏳ Tour adverse…</span>';return;}
+  if(G.mode==='2p'&&G.ap===1){el.innerHTML='<span style="color:var(--text2);font-size:10px;align-self:center;padding:8px">⏳ Tour de '+G.p[1].name+'</span>';return;}
+  G.p[pi].hand.forEach((c,i)=>el.appendChild(mkCard(c,()=>clickHand(pi,i),pi,false)));
+}
+function renderHandTop(pi){
+  const el=document.getElementById('p2-hand'); el.innerHTML='';
+  if(G.mode==='online'||G.mode==='ai'){
+    G.p[pi].hand.forEach(()=>{const d=document.createElement('div');d.className='cbk';d.textContent='🐋';el.appendChild(d);});
+  } else {
+    if(G.ap===0) G.p[pi].hand.forEach(()=>{const d=document.createElement('div');d.className='cbk';d.textContent='🐋';el.appendChild(d);});
+    else G.p[pi].hand.forEach((c,i)=>el.appendChild(mkCard(c,()=>clickHand(pi,i),pi,false)));
+  }
+}
+function renderBoard(pi,elId){
+  const el=document.getElementById(elId); el.innerHTML='';
+  const board=G.p[pi].board;
+  if(!board.length){el.innerHTML=`<span class="bempty">${pi===myPi()||G.mode!=='online'?'Votre zone':'Zone adverse'}</span>`;return;}
+  board.forEach(c=>el.appendChild(mkCard(c,()=>clickBoard(pi,c.iid),pi,true)));
+}
+function mkCard(card,onClick,pi,onBoard){
+  const d=document.createElement('div');
+  const isAtk=G.atking&&card.iid!==undefined&&G.atking.iid===card.iid;
+  const isSel=(_ic&&card.iid!==undefined&&_ic.iid===card.iid)||(_ic&&!onBoard&&card===_ic);
+  const exh=card.exhausted||card.frozen>0||card.stunned>0;
+  const lpi=G.mode==='online'?myPi():pi;
+  const canAtk=onBoard&&!exh&&!G.atking&&G.ap===pi&&pi===lpi&&isMyTurn();
+  let cls=`card ${ECLS[card.elem]||'esp'}`;
+  if(card.legendary) cls+=' leg';
+  if(exh&&onBoard) cls+=' exh';
+  if(isAtk||isSel) cls+=' sel';
+  if(canAtk) cls+=' atk';
+  if(!onBoard&&G.p[pi]&&G.p[pi].mana<card.cost) cls+=' dim';
+  d.className=cls; d.onclick=onClick;
+  const hpPct=onBoard?Math.max(0,card.curHp/(card.hp||1)*100):100;
+  const hpBc=hpPct>60?'var(--green)':hpPct>30?'#ffd600':'var(--red)';
+  d.innerHTML=`
+    <div class="ctop"><div class="ccost">${card.cost||0}</div><div class="crank">${card.rank||'Sort'}</div></div>
+    <div class="cemoji">${card.emoji}</div>
+    <div class="cname">${card.name}</div>
+    <div class="cbadge ${BCLS[card.elem]||'bsp'}">${card.type==='creature'?card.elem:'sort'}</div>
+    ${card.ability?`<div class="cabtxt">${card.ability}</div>`:''}
+    ${card.type==='creature'?`<div class="cstats"><span class="satk">⚔${onBoard?card.curAtk:card.atk}</span><span class="shp">♥${onBoard?card.curHp:card.hp}</span></div>`:''}
+    ${card.frozen>0?'<span class="sico" style="left:2px">❄️</span>':''}
+    ${card.stunned>0?'<span class="sico" style="left:2px">💫</span>':''}
+    ${card.burnTurns>0?'<span class="sico" style="right:2px">🔥</span>':''}`;
+  if(card.type==='creature'&&onBoard){
+    const b=document.createElement('div');b.className='chpbar';
+    const f=document.createElement('div');f.className='chpfill';f.style.width=hpPct+'%';f.style.background=hpBc;
+    b.appendChild(f);d.appendChild(b);
+  }
+  return d;
+}
+function renderLog(){
+  const el=document.getElementById('log-content'); el.innerHTML='';
+  [...G.log].slice(-40).reverse().forEach(e=>{
+    const d=document.createElement('div');d.className='le'+(e.t?' '+e.t:'');d.textContent=e.m;el.appendChild(d);
+  });
+}
+function log(m,t=''){G.log.push({m,t});if(G.log.length>150)G.log.shift();}
+function flt(n,heal){
+  const d=document.createElement('div');d.className='fdmg '+(heal?'fhe':'fat');
+  d.textContent=(heal?'+':'-')+n; d.style.cssText=`left:${15+Math.random()*55}%;top:48%;`;
+  document.body.appendChild(d); setTimeout(()=>d.remove(),900);
+}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ── EVENTS ──
+document.getElementById('btn-ai').onclick=()=>{showScreen('game-screen');initGame('ai');};
+document.getElementById('btn-2p').onclick=()=>{showScreen('game-screen');initGame('2p');};
+document.getElementById('btn-online').onclick=()=>{showScreen('lobby-screen');createRoom();};
+document.getElementById('btn-back-lobby').onclick=()=>{netStopPoll();showScreen('title-screen');};
+document.getElementById('btn-join').onclick=()=>joinRoom(document.getElementById('join-input').value);
+document.getElementById('join-input').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom(document.getElementById('join-input').value);});
+document.getElementById('btn-copy-code').onclick=()=>{
+  navigator.clipboard.writeText(myRoomCode||'').then(()=>{
+    const b=document.getElementById('btn-copy-code');
+    b.textContent='✅ Copié !'; setTimeout(()=>b.textContent='📋 Copier le code',2000);
+  }).catch(()=>{});
+};
+document.getElementById('btn-end').onclick=endTurn;
+document.getElementById('btn-return').onclick=()=>{netStopPoll();showScreen('title-screen');};
+document.getElementById('p1-status').onclick=()=>clickHero(G.mode==='online'?myPi():0);
+document.getElementById('p2-status').onclick=()=>clickHero(G.mode==='online'?1-myPi():1);
+</script>
+</body>
+</html>
