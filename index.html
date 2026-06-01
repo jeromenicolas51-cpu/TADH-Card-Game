@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ============================================ -->
-<!-- THE ALL-DEVOURING WHALE — VERSION 40         -->
+<!-- THE ALL-DEVOURING WHALE — VERSION 41         -->
 <!-- ============================================ -->
 <html lang="fr">
 <head>
@@ -146,6 +146,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;ov
   <div class="twh">🐋</div>
   <div class="tmain">THE ALL-DEVOURING WHALE</div>
   <div class="tsub">KUN TUN TIANXIA · CARD GAME</div>
+  <div style="font-size:10px;color:var(--text2);opacity:.7">version 41</div>
   <div class="mode-grid">
     <button class="mode-btn" id="btn-ai"><span class="mico">🤖</span><span class="mtxt"><span class="mlbl">Vs IA</span><span class="msub">Affrontez l'intelligence artificielle</span></span></button>
     <button class="mode-btn" id="btn-2p"><span class="mico">👥</span><span class="mtxt"><span class="mlbl">2 Joueurs local</span><span class="msub">Hot-seat sur le même écran</span></span></button>
@@ -362,14 +363,19 @@ function joinRoom(code){
   });
 }
 
+// Compat : anciennes références éventuelles (no-op pour éviter "netWrite is not defined")
+function netWrite(){ /* obsolète — remplacé par Ably chan.publish */ }
+function netRead(){ return Promise.resolve(null); }
+function netPoll(){}
+function netStopPoll(){ if(chan){ try{chan.unsubscribe();}catch(e){} chan=null; } if(lobbyHostBeat){clearInterval(lobbyHostBeat);lobbyHostBeat=null;} }
+
 function publishState(){
-  diag('🔧 publishState appelé (mode='+G.mode+', chan='+(chan?'OK':'NULL')+')','info');
   if(G.mode!=='online'){ return; }
-  if(!chan){ diag('❌ chan est NULL, impossible de publier','err'); return; }
+  if(!chan){ diag('❌ chan NULL','err'); return; }
   try {
     chan.publish('state', JSON.parse(JSON.stringify(G)));
     diag('📤 état publié (ap='+G.ap+')','send');
-  } catch(e){ diag('❌ publishState erreur: '+(e&&e.message||e),'err'); }
+  } catch(e){ diag('❌ publishState: '+(e&&e.message||e),'err'); }
 }
 
 function startOnlineGame(){
@@ -377,7 +383,6 @@ function startOnlineGame(){
   showScreen('game-screen');
   initGame('online');
 }
-function netStopPoll(){ if(chan){ chan.unsubscribe(); chan=null; } if(lobbyHostBeat){clearInterval(lobbyHostBeat);lobbyHostBeat=null;} }
 
 // ══════════════════════════════════════
 // CARD DATA
