@@ -225,6 +225,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;ov
         <div class="ptitle">Journal de combat</div>
         <div id="log-content"></div>
       </div>
+      <div class="pbox" style="flex:none;max-height:130px;overflow-y:auto">
+        <div class="ptitle">🔧 Diagnostic réseau</div>
+        <div id="diag-box2" style="font-family:monospace;font-size:8px;color:#7aaad4;line-height:1.5"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -248,14 +252,18 @@ let ably = null, chan = null;
 let myRole = null, myRoomCode = null, lobbyHostBeat = null;
 
 function diag(msg, type){
-  const box = document.getElementById('diag-box');
-  if(!box) return;
   const colors = {ok:'#4caf7d', err:'#e85555', info:'#7aaad4', send:'#e8c46a'};
   const time = new Date().toLocaleTimeString('fr-FR',{hour12:false});
-  const line = document.createElement('div');
-  line.style.color = colors[type]||'#7aaad4';
-  line.textContent = `[${time}] ${msg}`;
-  box.appendChild(line); box.scrollTop = box.scrollHeight;
+  const col = colors[type]||'#7aaad4';
+  console.log('[DIAG]', msg);
+  ['diag-box','diag-box2'].forEach(id=>{
+    const box = document.getElementById(id);
+    if(!box) return;
+    const line = document.createElement('div');
+    line.style.color = col;
+    line.textContent = `[${time}] ${msg}`;
+    box.appendChild(line); box.scrollTop = box.scrollHeight;
+  });
 }
 
 function genCode(){
@@ -352,11 +360,18 @@ function joinRoom(code){
 }
 
 function publishState(){
-  if(G.mode!=='online' || !chan) return;
-  chan.publish('state', JSON.parse(JSON.stringify(G)));
+  if(G.mode!=='online' || !chan){ diag('⚠️ publishState ignoré (chan='+(!!chan)+')','err'); return; }
+  try {
+    chan.publish('state', JSON.parse(JSON.stringify(G)));
+    diag('📤 état publié (ap='+G.ap+')','send');
+  } catch(e){ diag('❌ publishState erreur: '+(e&&e.message||e),'err'); }
 }
 
-function startOnlineGame(){ showScreen('game-screen'); initGame('online'); }
+function startOnlineGame(){
+  diag('🎬 startOnlineGame() rôle='+myRole, 'ok');
+  showScreen('game-screen');
+  initGame('online');
+}
 function netStopPoll(){ if(chan){ chan.unsubscribe(); chan=null; } if(lobbyHostBeat){clearInterval(lobbyHostBeat);lobbyHostBeat=null;} }
 
 // ══════════════════════════════════════
@@ -497,13 +512,13 @@ function ci(card){return{...card,iid:iid++,curHp:card.hp,curAtk:card.atk,exhaust
 
 function initGame(mode){
   iid=0;_ic=null;_ip=null;_if=null;_pi=null;
-  // En online, seul l'HÔTE génère l'état initial. L'invité attend de le recevoir.
+  diag('🎮 initGame mode='+mode+' rôle='+myRole,'info');
   if(mode==='online' && myRole==='guest'){
     G = {mode:'online', _waiting:true, turn:1, ap:0, log:[], atking:null, gameOver:false, p:[null,null]};
     document.getElementById('online-badge').style.display='inline-block';
     setEmpty();
-    diag('⏳ En attente de l\'état initial de l\'hôte…','info');
-    return; // on attend applyRemoteState
+    diag('⏳ Invité : attente état hôte…','info');
+    return;
   }
   G={mode,turn:1,ap:0,log:[],atking:null,gameOver:false,
     p:[
@@ -515,8 +530,9 @@ function initGame(mode){
     ]};
   draw(0,4); draw(1,4);
   document.getElementById('online-badge').style.display = mode==='online'?'inline-block':'none';
+  diag('🃏 Hôte : '+G.p[0].hand.length+' cartes en main','ok');
   setEmpty();
-  startTurn(); // l'hôte démarre le tour 1 ET publie l'état (via startTurn → publishState)
+  startTurn();
 }
 
 // ── ONLINE SYNC ──
