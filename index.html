@@ -280,8 +280,7 @@ function connectAbly(cb){
 }
 function _doConnect(cb){
   diag('🔌 Connexion à Ably…', 'info');
-  // clientId distinct selon le rôle (requis pour la présence)
-  ably = new Ably.Realtime({ key: ABLY_KEY, clientId: myRole==='guest'?'guest':'host' });
+  ably = new Ably.Realtime({ key: ABLY_KEY });
   ably.connection.once('connected', ()=>{ diag('✅ Connecté à Ably', 'ok'); cb(); });
   ably.connection.on('failed', (e)=>diag('❌ Connexion Ably échouée : '+(e&&e.reason&&e.reason.message||''), 'err'));
 }
@@ -292,29 +291,21 @@ function createRoom(){
   document.getElementById('lobby-code').textContent = code;
   document.getElementById('lobby-status-txt').textContent = "En attente d'un adversaire…";
   diag('🎮 Room créée : '+code+' (HÔTE)', 'ok');
+  window._hostStarted = false;
   connectAbly(()=>{
     chan = ably.channels.get('whale-'+code);
-    // Écoute les messages d'état du jeu
     chan.subscribe('state', m=>applyRemoteState(m.data));
-    // Utilise la PRÉSENCE pour détecter l'arrivée de l'invité
-    chan.presence.subscribe('enter', member=>{
-      if(member.clientId==='host') return;
-      diag('✅ Invité détecté (présence) !', 'ok');
+    chan.subscribe('guest-join', ()=>{
+      if(window._hostStarted) return;
+      diag('✅ Invité connecté !', 'ok');
       document.getElementById('lobby-status-txt').textContent = 'Adversaire connecté ! Démarrage…';
-      if(!window._hostStarted){ window._hostStarted=true; setTimeout(()=>startOnlineGame(), 600); }
-    });
-    // L'hôte entre dans la présence
-    chan.presence.enter().then(()=>{
-      diag('👂 En attente d\'un adversaire (présence active)…', 'info');
-      // Vérifie si un invité est déjà présent (au cas où il serait arrivé avant)
-      chan.presence.get().then(members=>{
-        if(members.some(m=>m.clientId==='guest') && !window._hostStarted){
-          window._hostStarted=true;
-          diag('✅ Invité déjà présent !', 'ok');
-          setTimeout(()=>startOnlineGame(), 600);
-        }
-      });
-    }).catch(e=>diag('❌ Erreur présence: '+e.message,'err'));
+      // Renvoie l'ack plusieurs fois pour fiabiliser
+      chan.publish('host-ack', {});
+      setTimeout(()=>chan.publish('host-ack', {}), 400);
+      setTimeout(()=>chan.publish('host-ack', {}), 1000);
+      window._hostStarted = true;
+      setTimeout(()=>startOnlineGame(), 700);
+    }, err=>{ if(err) diag('❌ abonnement rejeté: '+err.message,'err'); else diag('👂 En attente d\'un adversaire…','info'); });
   });
 }
 
@@ -324,25 +315,35 @@ function joinRoom(code){
   document.getElementById('join-err').textContent='';
   document.getElementById('btn-join').textContent='Connexion…';
   myRoomCode = code; myRole = 'guest';
+  window._guestStarted = false;
   diag('🔑 Connexion à : '+code+' (INVITÉ)', 'info');
   connectAbly(()=>{
     chan = ably.channels.get('whale-'+code);
     chan.subscribe('state', m=>applyRemoteState(m.data));
-    // Vérifie qu'un hôte est présent
-    chan.presence.get().then(members=>{
-      const hostPresent = members.some(m=>m.clientId==='host');
-      if(!hostPresent){
-        diag('⚠️ Aucun hôte trouvé pour ce code. Vérifiez le code ou attendez.', 'err');
-        // On entre quand même : l'hôte nous détectera s'il arrive
-      } else {
-        diag('✅ Hôte trouvé !', 'ok');
-      }
-      // L'invité entre dans la présence
-      chan.presence.enter().then(()=>{
-        diag('✏️ Présence active, démarrage…', 'send');
-        if(!window._guestStarted){ window._guestStarted=true; setTimeout(()=>startOnlineGame(), 900); }
-      }).catch(e=>diag('❌ Erreur présence: '+e.message,'err'));
-    }).catch(e=>diag('❌ Erreur lecture présence: '+e.message,'err'));
+    chan.subscribe('host-ack', ()=>{
+      if(window._guestStarted) return;
+      window._guestStarted = true;
+      diag('🚀 Confirmation reçue !', 'ok');
+      if(window._joinBeat){ clearInterval(window._joinBeat); window._joinBeat=null; }
+      setTimeout(()=>startOnlineGame(), 300);
+    }, err=>{ if(err) diag('❌ abonnement rejeté: '+err.message,'err'); });
+    // Signale sa présence en boucle jusqu'à recevoir l'ack
+    const sendJoin = ()=>chan.publish('guest-join', {}, err=>{
+      if(err) diag('❌ envoi rejeté: '+err.message,'err');
+    });
+    sendJoin();
+    diag('✏️ Présence signalée, attente de l\'hôte…', 'send');
+    window._joinBeat = setInterval(()=>{
+      if(window._guestStarted){ clearInterval(window._joinBeat); window._joinBeat=null; return; }
+      sendJoin();
+    }, 1500);
+    // Timeout
+    let tries=0;
+    const giveUp=setInterval(()=>{
+      tries++;
+      if(window._guestStarted){ clearInterval(giveUp); return; }
+      if(tries>12){ clearInterval(giveUp); if(window._joinBeat){clearInterval(window._joinBeat);window._joinBeat=null;} diag('❌ Aucune réponse de l\'hôte. Vérifiez le code.','err'); document.getElementById('join-err').textContent='Partie introuvable.'; document.getElementById('btn-join').textContent='Rejoindre la partie'; }
+    }, 1500);
   });
 }
 
