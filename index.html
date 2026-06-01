@@ -257,12 +257,11 @@ function connectAbly(cb){
   if(ably && ably.connection.state==='connected'){ cb(); return; }
   if(typeof Ably==='undefined'){
     diag('⏳ SDK Ably pas encore prêt, nouvelle tentative…', 'info');
-    // Réessaie pendant 5s au cas où le script charge encore
     let tries = 0;
     const wait = setInterval(()=>{
       tries++;
       if(typeof Ably!=='undefined'){ clearInterval(wait); _doConnect(cb); }
-      else if(tries>25){ clearInterval(wait); diag('❌ SDK Ably introuvable. Vérifiez votre connexion internet et que le fichier est bien hébergé (pas ouvert en local file://).', 'err'); }
+      else if(tries>25){ clearInterval(wait); diag('❌ SDK Ably introuvable. Vérifiez votre connexion et que le fichier est bien hébergé (pas en local file://).', 'err'); }
     }, 200);
     return;
   }
@@ -270,7 +269,8 @@ function connectAbly(cb){
 }
 function _doConnect(cb){
   diag('🔌 Connexion à Ably…', 'info');
-  ably = new Ably.Realtime({ key: ABLY_KEY });
+  // clientId distinct selon le rôle (requis pour la présence)
+  ably = new Ably.Realtime({ key: ABLY_KEY, clientId: myRole==='guest'?'guest':'host' });
   ably.connection.once('connected', ()=>{ diag('✅ Connecté à Ably', 'ok'); cb(); });
   ably.connection.on('failed', (e)=>diag('❌ Connexion Ably échouée : '+(e&&e.reason&&e.reason.message||''), 'err'));
 }
@@ -283,15 +283,27 @@ function createRoom(){
   diag('🎮 Room créée : '+code+' (HÔTE)', 'ok');
   connectAbly(()=>{
     chan = ably.channels.get('whale-'+code);
-    chan.subscribe('guest-join', ()=>{
-      diag('✅ Invité connecté !', 'ok');
-      document.getElementById('lobby-status-txt').textContent = 'Adversaire connecté ! Démarrage…';
-      chan.publish('host-ack', {}, err=>{ if(err) diag('❌ publish host-ack rejeté: '+err.message,'err'); });
-      setTimeout(()=>chan.publish('host-ack', {}), 500);
-      setTimeout(()=>chan.publish('host-ack', {}), 1200);
-      if(!window._hostStarted){ window._hostStarted=true; setTimeout(()=>startOnlineGame(), 800); }
-    }, err=>{ if(err) diag('❌ abonnement guest-join rejeté: '+err.message,'err'); else diag('👂 Abonné à guest-join, en attente…','info'); });
+    // Écoute les messages d'état du jeu
     chan.subscribe('state', m=>applyRemoteState(m.data));
+    // Utilise la PRÉSENCE pour détecter l'arrivée de l'invité
+    chan.presence.subscribe('enter', member=>{
+      if(member.clientId==='host') return;
+      diag('✅ Invité détecté (présence) !', 'ok');
+      document.getElementById('lobby-status-txt').textContent = 'Adversaire connecté ! Démarrage…';
+      if(!window._hostStarted){ window._hostStarted=true; setTimeout(()=>startOnlineGame(), 600); }
+    });
+    // L'hôte entre dans la présence
+    chan.presence.enter().then(()=>{
+      diag('👂 En attente d\'un adversaire (présence active)…', 'info');
+      // Vérifie si un invité est déjà présent (au cas où il serait arrivé avant)
+      chan.presence.get().then(members=>{
+        if(members.some(m=>m.clientId==='guest') && !window._hostStarted){
+          window._hostStarted=true;
+          diag('✅ Invité déjà présent !', 'ok');
+          setTimeout(()=>startOnlineGame(), 600);
+        }
+      });
+    }).catch(e=>diag('❌ Erreur présence: '+e.message,'err'));
   });
 }
 
@@ -304,24 +316,22 @@ function joinRoom(code){
   diag('🔑 Connexion à : '+code+' (INVITÉ)', 'info');
   connectAbly(()=>{
     chan = ably.channels.get('whale-'+code);
-    let joined = false;
-    chan.subscribe('host-ack', ()=>{
-      if(joined) return;
-      joined = true;
-      diag('🚀 Confirmation reçue !', 'ok');
-      if(window._joinBeat){ clearInterval(window._joinBeat); window._joinBeat=null; }
-      setTimeout(()=>startOnlineGame(), 300);
-    }, err=>{ if(err) diag('❌ abonnement host-ack rejeté: '+err.message,'err'); });
     chan.subscribe('state', m=>applyRemoteState(m.data));
-    chan.publish('guest-join', {}, err=>{
-      if(err) diag('❌ publish guest-join REJETÉ: '+err.message,'err');
-      else diag('✅ guest-join envoyé avec succès','ok');
-    });
-    diag('✏️ Présence signalée, attente de l\'hôte…', 'send');
-    window._joinBeat = setInterval(()=>{
-      if(joined){ clearInterval(window._joinBeat); window._joinBeat=null; return; }
-      chan.publish('guest-join', {});
-    }, 1500);
+    // Vérifie qu'un hôte est présent
+    chan.presence.get().then(members=>{
+      const hostPresent = members.some(m=>m.clientId==='host');
+      if(!hostPresent){
+        diag('⚠️ Aucun hôte trouvé pour ce code. Vérifiez le code ou attendez.', 'err');
+        // On entre quand même : l'hôte nous détectera s'il arrive
+      } else {
+        diag('✅ Hôte trouvé !', 'ok');
+      }
+      // L'invité entre dans la présence
+      chan.presence.enter().then(()=>{
+        diag('✏️ Présence active, démarrage…', 'send');
+        if(!window._guestStarted){ window._guestStarted=true; setTimeout(()=>startOnlineGame(), 900); }
+      }).catch(e=>diag('❌ Erreur présence: '+e.message,'err'));
+    }).catch(e=>diag('❌ Erreur lecture présence: '+e.message,'err'));
   });
 }
 
