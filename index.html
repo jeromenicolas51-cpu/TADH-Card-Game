@@ -294,18 +294,22 @@ function createRoom(){
   window._hostStarted = false;
   connectAbly(()=>{
     chan = ably.channels.get('whale-'+code);
-    chan.subscribe('state', m=>applyRemoteState(m.data));
-    chan.subscribe('guest-join', ()=>{
-      if(window._hostStarted) return;
-      diag('✅ Invité connecté !', 'ok');
-      document.getElementById('lobby-status-txt').textContent = 'Adversaire connecté ! Démarrage…';
-      // Renvoie l'ack plusieurs fois pour fiabiliser
-      chan.publish('host-ack', {});
-      setTimeout(()=>chan.publish('host-ack', {}), 400);
-      setTimeout(()=>chan.publish('host-ack', {}), 1000);
-      window._hostStarted = true;
-      setTimeout(()=>startOnlineGame(), 700);
-    }, err=>{ if(err) diag('❌ abonnement rejeté: '+err.message,'err'); else diag('👂 En attente d\'un adversaire…','info'); });
+    // Attache explicitement le canal d'abord
+    chan.attach().then(()=>{
+      diag('🔗 Canal attaché', 'ok');
+      chan.subscribe('state', m=>applyRemoteState(m.data));
+      chan.subscribe('guest-join', ()=>{
+        if(window._hostStarted) return;
+        diag('✅ Invité connecté !', 'ok');
+        document.getElementById('lobby-status-txt').textContent = 'Adversaire connecté ! Démarrage…';
+        chan.publish('host-ack', {});
+        setTimeout(()=>chan.publish('host-ack', {}), 400);
+        setTimeout(()=>chan.publish('host-ack', {}), 1000);
+        window._hostStarted = true;
+        setTimeout(()=>startOnlineGame(), 700);
+      });
+      diag('👂 En attente d\'un adversaire…', 'info');
+    }).catch(e=>diag('❌ Erreur attache canal: '+(e&&e.message||e), 'err'));
   });
 }
 
@@ -319,31 +323,31 @@ function joinRoom(code){
   diag('🔑 Connexion à : '+code+' (INVITÉ)', 'info');
   connectAbly(()=>{
     chan = ably.channels.get('whale-'+code);
-    chan.subscribe('state', m=>applyRemoteState(m.data));
-    chan.subscribe('host-ack', ()=>{
-      if(window._guestStarted) return;
-      window._guestStarted = true;
-      diag('🚀 Confirmation reçue !', 'ok');
-      if(window._joinBeat){ clearInterval(window._joinBeat); window._joinBeat=null; }
-      setTimeout(()=>startOnlineGame(), 300);
-    }, err=>{ if(err) diag('❌ abonnement rejeté: '+err.message,'err'); });
-    // Signale sa présence en boucle jusqu'à recevoir l'ack
-    const sendJoin = ()=>chan.publish('guest-join', {}, err=>{
-      if(err) diag('❌ envoi rejeté: '+err.message,'err');
-    });
-    sendJoin();
-    diag('✏️ Présence signalée, attente de l\'hôte…', 'send');
-    window._joinBeat = setInterval(()=>{
-      if(window._guestStarted){ clearInterval(window._joinBeat); window._joinBeat=null; return; }
+    chan.attach().then(()=>{
+      diag('🔗 Canal attaché', 'ok');
+      chan.subscribe('state', m=>applyRemoteState(m.data));
+      chan.subscribe('host-ack', ()=>{
+        if(window._guestStarted) return;
+        window._guestStarted = true;
+        diag('🚀 Confirmation reçue !', 'ok');
+        if(window._joinBeat){ clearInterval(window._joinBeat); window._joinBeat=null; }
+        setTimeout(()=>startOnlineGame(), 300);
+      });
+      // Envoie guest-join en boucle
+      const sendJoin = ()=>chan.publish('guest-join', {}).catch(err=>diag('❌ envoi rejeté: '+(err&&err.message||err),'err'));
       sendJoin();
-    }, 1500);
-    // Timeout
-    let tries=0;
-    const giveUp=setInterval(()=>{
-      tries++;
-      if(window._guestStarted){ clearInterval(giveUp); return; }
-      if(tries>12){ clearInterval(giveUp); if(window._joinBeat){clearInterval(window._joinBeat);window._joinBeat=null;} diag('❌ Aucune réponse de l\'hôte. Vérifiez le code.','err'); document.getElementById('join-err').textContent='Partie introuvable.'; document.getElementById('btn-join').textContent='Rejoindre la partie'; }
-    }, 1500);
+      diag('✏️ Présence signalée, attente de l\'hôte…', 'send');
+      window._joinBeat = setInterval(()=>{
+        if(window._guestStarted){ clearInterval(window._joinBeat); window._joinBeat=null; return; }
+        sendJoin();
+      }, 1500);
+      let tries=0;
+      const giveUp=setInterval(()=>{
+        tries++;
+        if(window._guestStarted){ clearInterval(giveUp); return; }
+        if(tries>15){ clearInterval(giveUp); if(window._joinBeat){clearInterval(window._joinBeat);window._joinBeat=null;} diag('❌ Aucune réponse de l\'hôte.','err'); document.getElementById('join-err').textContent='Partie introuvable.'; document.getElementById('btn-join').textContent='Rejoindre la partie'; }
+      }, 1500);
+    }).catch(e=>diag('❌ Erreur attache canal: '+(e&&e.message||e), 'err'));
   });
 }
 
