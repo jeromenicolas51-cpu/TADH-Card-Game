@@ -155,19 +155,30 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;ov
   <div style="position:absolute;top:12px;left:12px"><button class="btn" id="btn-back-lobby">← Retour</button></div>
   <div class="lobby-box">
     <div class="lobby-title">🌐 Partie en ligne</div>
-    <div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Partagez ce code avec votre adversaire :</div>
+
+    <!-- CHOIX INITIAL -->
+    <div id="lobby-choice">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5">Un joueur crée la partie, l'autre la rejoint avec le code.</div>
+      <button class="btn btnp" style="width:100%;margin-bottom:8px" id="btn-create">🎮 Créer une partie</button>
+      <button class="btn" style="width:100%" id="btn-show-join">🔑 Rejoindre une partie</button>
+    </div>
+
+    <!-- ÉCRAN HÔTE -->
+    <div id="lobby-host" style="display:none">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Transmettez ce code à votre adversaire :</div>
       <div class="lobby-code" id="lobby-code">------</div>
       <div class="lobby-status" style="margin-top:8px"><div class="dot-anim"></div><span id="lobby-status-txt">En attente d'un adversaire…</span></div>
       <button class="btn" style="font-size:11px;padding:6px 12px;width:100%;margin-top:8px" id="btn-copy-code">📋 Copier le code</button>
     </div>
-    <div class="sep-or">ou rejoindre</div>
-    <div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Entrez le code d'une partie :</div>
+
+    <!-- ÉCRAN INVITÉ -->
+    <div id="lobby-guest" style="display:none">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Entrez le code reçu :</div>
       <input class="inp" id="join-input" maxlength="6" placeholder="ABCDEF">
       <div class="err-msg" id="join-err"></div>
       <button class="btn btnp" style="width:100%;margin-top:6px" id="btn-join">Rejoindre la partie</button>
     </div>
+
     <div id="diag-box" style="margin-top:8px;background:#070f1e;border:1px solid var(--border);border-radius:6px;padding:6px;max-height:120px;overflow-y:auto;text-align:left;font-family:monospace;font-size:8px;color:#7aaad4;line-height:1.5"></div>
   </div>
 </div>
@@ -882,7 +893,25 @@ function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classL
 // ── EVENTS ──
 document.getElementById('btn-ai').onclick=()=>{showScreen('game-screen');initGame('ai');};
 document.getElementById('btn-2p').onclick=()=>{showScreen('game-screen');initGame('2p');};
-document.getElementById('btn-online').onclick=()=>{showScreen('lobby-screen');createRoom();};
+document.getElementById('btn-online').onclick=()=>{
+  // Réinitialise le lobby sur l'écran de choix
+  document.getElementById('lobby-choice').style.display='block';
+  document.getElementById('lobby-host').style.display='none';
+  document.getElementById('lobby-guest').style.display='none';
+  document.getElementById('diag-box').innerHTML='';
+  window._hostStarted=false; window._guestStarted=false;
+  showScreen('lobby-screen');
+};
+document.getElementById('btn-create').onclick=()=>{
+  document.getElementById('lobby-choice').style.display='none';
+  document.getElementById('lobby-host').style.display='block';
+  createRoom();
+};
+document.getElementById('btn-show-join').onclick=()=>{
+  document.getElementById('lobby-choice').style.display='none';
+  document.getElementById('lobby-guest').style.display='block';
+  document.getElementById('join-input').focus();
+};
 document.getElementById('btn-back-lobby').onclick=()=>{netStopPoll();showScreen('title-screen');};
 document.getElementById('btn-join').onclick=()=>joinRoom(document.getElementById('join-input').value);
 document.getElementById('join-input').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom(document.getElementById('join-input').value);});
