@@ -497,27 +497,26 @@ function ci(card){return{...card,iid:iid++,curHp:card.hp,curAtk:card.atk,exhaust
 
 function initGame(mode){
   iid=0;_ic=null;_ip=null;_if=null;_pi=null;
+  // En online, seul l'HÔTE génère l'état initial. L'invité attend de le recevoir.
+  if(mode==='online' && myRole==='guest'){
+    G = {mode:'online', _waiting:true, turn:1, ap:0, log:[], atking:null, gameOver:false, p:[null,null]};
+    document.getElementById('online-badge').style.display='inline-block';
+    setEmpty();
+    diag('⏳ En attente de l\'état initial de l\'hôte…','info');
+    return; // on attend applyRemoteState
+  }
   G={mode,turn:1,ap:0,log:[],atking:null,gameOver:false,
     p:[
       {name:'Fan Lingxiao',hp:30,mhp:30,mana:0,mmana:0,deck:mkDeck1(),hand:[],board:[],disc:[],
-       tag:mode==='online'&&myRole==='host'?'VOUS':'P1'},
+       tag:mode==='online'?'VOUS':'P1'},
       {name:mode==='ai'?'Bai Tanshu':mode==='online'?'Adversaire':'Yue Tong',
        hp:30,mhp:30,mana:0,mmana:0,deck:mode==='ai'?mkDeck2():mkDeck1(),hand:[],board:[],disc:[],
-       tag:mode==='online'&&myRole==='guest'?'VOUS':mode==='ai'?'IA':'P2'},
+       tag:mode==='online'?'ADV':mode==='ai'?'IA':'P2'},
     ]};
   draw(0,4); draw(1,4);
   document.getElementById('online-badge').style.display = mode==='online'?'inline-block':'none';
-  if(mode==='online'){
-    // Subscribe to state updates from the other player
-    const startTs = Date.now();
-    netPoll('game:'+myRoomCode+':state', (remoteG)=>{
-      applyRemoteState(remoteG);
-    }, startTs);
-    // Host publishes initial state so guest can see it
-    if(myRole==='host') publishState();
-  }
   setEmpty();
-  startTurn();
+  startTurn(); // l'hôte démarre le tour 1 ET publie l'état (via startTurn → publishState)
 }
 
 // ── ONLINE SYNC ──
@@ -555,6 +554,7 @@ function draw(pi,n){
 
 function startTurn(){
   const pi=G.ap, p=G.p[pi];
+  if(!p) return; // sécurité si état pas encore initialisé
   p.mmana=Math.min(10,G.turn+2); p.mana=p.mmana;
   draw(pi,1);
   p.board.forEach(c=>{
@@ -567,7 +567,7 @@ function startTurn(){
   });
   p.board=p.board.filter(c=>c.curHp>0);
   log(`─── Tour ${G.turn} — ${p.name} ───`,'imp');
-  // En online : republier l'état (pioche/mana à jour) pour que l'adversaire voie le plateau
+  // En online : publier l'état pour synchroniser l'adversaire
   if(G.mode==='online'){ G._needStartTurn=false; publishState(); }
   renderAll();
   updateWaiting();
@@ -807,6 +807,7 @@ function clickHero(pi){
 
 // ── RENDER ──
 function renderAll(){
+  if(!G.p || !G.p[0] || !G.p[1]) return; // état pas encore prêt (invité en attente)
   const bot=G.mode==='online'?myPi():0;
   const top=1-bot;
   const rSlot=(p,pref)=>{
