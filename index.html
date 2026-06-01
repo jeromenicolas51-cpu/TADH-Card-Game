@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- ============================================ -->
+<!-- THE ALL-DEVOURING WHALE — VERSION 39         -->
+<!-- ============================================ -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -360,7 +363,9 @@ function joinRoom(code){
 }
 
 function publishState(){
-  if(G.mode!=='online' || !chan){ diag('⚠️ publishState ignoré (chan='+(!!chan)+')','err'); return; }
+  diag('🔧 publishState appelé (mode='+G.mode+', chan='+(chan?'OK':'NULL')+')','info');
+  if(G.mode!=='online'){ return; }
+  if(!chan){ diag('❌ chan est NULL, impossible de publier','err'); return; }
   try {
     chan.publish('state', JSON.parse(JSON.stringify(G)));
     diag('📤 état publié (ap='+G.ap+')','send');
@@ -570,7 +575,8 @@ function draw(pi,n){
 
 function startTurn(){
   const pi=G.ap, p=G.p[pi];
-  if(!p) return; // sécurité si état pas encore initialisé
+  if(!p){ diag('⚠️ startTurn: joueur null','err'); return; }
+  diag('🔄 startTurn pi='+pi+' tour='+G.turn,'info');
   p.mmana=Math.min(10,G.turn+2); p.mana=p.mmana;
   draw(pi,1);
   p.board.forEach(c=>{
@@ -583,10 +589,9 @@ function startTurn(){
   });
   p.board=p.board.filter(c=>c.curHp>0);
   log(`─── Tour ${G.turn} — ${p.name} ───`,'imp');
-  // En online : publier l'état pour synchroniser l'adversaire
+  // ⚠️ PUBLIER L'ÉTAT D'ABORD (avant le rendu qui pourrait planter)
   if(G.mode==='online'){ G._needStartTurn=false; publishState(); }
-  renderAll();
-  updateWaiting();
+  try { renderAll(); updateWaiting(); } catch(e){ diag('❌ erreur rendu: '+(e&&e.message||e),'err'); }
   if(pi===1&&G.mode==='ai') setTimeout(aiTurn,900);
 }
 
