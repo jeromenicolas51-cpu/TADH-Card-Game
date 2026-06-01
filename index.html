@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ============================================ -->
-<!-- THE ALL-DEVOURING WHALE — VERSION 39         -->
+<!-- THE ALL-DEVOURING WHALE — VERSION 40         -->
 <!-- ============================================ -->
 <html lang="fr">
 <head>
@@ -574,25 +574,33 @@ function draw(pi,n){
 }
 
 function startTurn(){
-  const pi=G.ap, p=G.p[pi];
-  if(!p){ diag('⚠️ startTurn: joueur null','err'); return; }
-  diag('🔄 startTurn pi='+pi+' tour='+G.turn,'info');
-  p.mmana=Math.min(10,G.turn+2); p.mana=p.mmana;
-  draw(pi,1);
-  p.board.forEach(c=>{
-    c.exhausted=false;
-    if(c.frozen>0){c.frozen--;if(c.frozen>0)c.exhausted=true;}
-    if(c.stunned>0){c.stunned--;if(c.stunned>0)c.exhausted=true;}
-    if(c.ability==='Evolve'){c.evolveCounter++;if(c.evolveCounter>=2){c.curAtk++;c.curHp++;log(`${c.name} évolue!`,'hl');}}
-    if(c.ability==='Endure'){c.curHp=Math.min(c.hp+3,c.curHp+1);log(`${c.name} régénère 1 PV`,'hl');}
-    if(c.burnTurns>0){c.curHp-=c.burnDmg||1;c.burnTurns--;log(`${c.name} brûlure`,'atk');}
-  });
-  p.board=p.board.filter(c=>c.curHp>0);
-  log(`─── Tour ${G.turn} — ${p.name} ───`,'imp');
-  // ⚠️ PUBLIER L'ÉTAT D'ABORD (avant le rendu qui pourrait planter)
-  if(G.mode==='online'){ G._needStartTurn=false; publishState(); }
-  try { renderAll(); updateWaiting(); } catch(e){ diag('❌ erreur rendu: '+(e&&e.message||e),'err'); }
-  if(pi===1&&G.mode==='ai') setTimeout(aiTurn,900);
+  try {
+    const pi=G.ap, p=G.p[pi];
+    if(!p){ diag('⚠️ startTurn: joueur null','err'); return; }
+    diag('🔄 startTurn pi='+pi+' tour='+G.turn,'info');
+    p.mmana=Math.min(10,G.turn+2); p.mana=p.mmana;
+    diag('  → mana ok','info');
+    draw(pi,1);
+    diag('  → pioche ok ('+p.hand.length+' cartes)','info');
+    p.board.forEach(c=>{
+      c.exhausted=false;
+      if(c.frozen>0){c.frozen--;if(c.frozen>0)c.exhausted=true;}
+      if(c.stunned>0){c.stunned--;if(c.stunned>0)c.exhausted=true;}
+      if(c.ability==='Evolve'){c.evolveCounter++;if(c.evolveCounter>=2){c.curAtk++;c.curHp++;log(`${c.name} évolue!`,'hl');}}
+      if(c.ability==='Endure'){c.curHp=Math.min(c.hp+3,c.curHp+1);log(`${c.name} régénère 1 PV`,'hl');}
+      if(c.burnTurns>0){c.curHp-=c.burnDmg||1;c.burnTurns--;log(`${c.name} brûlure`,'atk');}
+    });
+    p.board=p.board.filter(c=>c.curHp>0);
+    diag('  → plateau ok','info');
+    log(`─── Tour ${G.turn} — ${p.name} ───`,'imp');
+    diag('  → log ok, publication…','info');
+    if(G.mode==='online'){ G._needStartTurn=false; publishState(); }
+    renderAll();
+    updateWaiting();
+    if(pi===1&&G.mode==='ai') setTimeout(aiTurn,900);
+  } catch(e){
+    diag('❌❌ EXCEPTION startTurn: '+(e&&e.message||e),'err');
+  }
 }
 
 function endTurn(){
